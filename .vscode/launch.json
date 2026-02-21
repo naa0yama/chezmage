@@ -7,15 +7,15 @@
 		{
 			"type": "lldb",
 			"request": "launch",
-			"name": "Debug executable 'app'",
+			"name": "Debug executable 'chezmage'",
 			"cargo": {
 				"args": [
 					"build",
-					"--bin=app",
-					"--package=app"
+					"--bin=chezmage",
+					"--package=chezmage"
 				],
 				"filter": {
-					"name": "app",
+					"name": "chezmage",
 					"kind": "bin"
 				}
 			},
@@ -25,16 +25,16 @@
 		{
 			"type": "lldb",
 			"request": "launch",
-			"name": "Debug unit tests in executable 'app'",
+			"name": "Debug unit tests in executable 'chezmage'",
 			"cargo": {
 				"args": [
 					"test",
 					"--no-run",
-					"--bin=app",
-					"--package=app"
+					"--bin=chezmage",
+					"--package=chezmage"
 				],
 				"filter": {
-					"name": "app",
+					"name": "chezmage",
 					"kind": "bin"
 				}
 			},

@@ -1,162 +1,138 @@
-# Boilerplate-Rust
+# chezmage
 
-![coverage](https://raw.githubusercontent.com/naa0yama/boilerplate-rust/badges/coverage.svg)
-![test execution time](https://raw.githubusercontent.com/naa0yama/boilerplate-rust/badges/time.svg)
+chezmoi + age encryption with **GPG (YubiKey) protected age secret keys that never touch disk**. A single Rust binary.
 
-Rust プロジェクトのための開発テンプレート
+## Features
 
-## 概要
+- **Single binary + 1 symlink** — no shell scripts needed
+- **Auto-reads chezmoi.toml** — discovers `identity` / `identities` key paths
+- **Multiple key support** — GPG encrypted / plaintext / mixed
+- **Zero disk writes** — keys exist only in process memory (env var)
+- **Security hardened** — mlock, zeroize, core dump disable, ptrace block
+- **Cross-platform** — Linux / Windows
 
-このプロジェクトは、Rust 開発を始めるためのボイラープレートです。Dev Containers に対応しており、VS Code での開発環境が簡単に構築できます。
+## How it works
 
-## 必要要件
+```
+chezmage apply                    ← Wrapper mode
+       │
+       ├─ Read chezmoi.toml
+       │    [age] identity = "~/.config/chezmoi/key1.gpg"
+       │    [age] identities = ["key2.gpg", "key3.txt"]
+       │
+       ├─ Process each identity:
+       │    *.gpg / *.asc → gpg --decrypt (YubiKey touch)
+       │    other         → read file
+       │    /dev/null, NUL → skip
+       │
+       ├─ Combine all keys → $CHEZMOI_AGE_KEY (mlock'd memory)
+       │
+       └─ exec chezmoi apply
+              │
+              ├─ file1.age → chezmage-shim (symlink)
+              │    └─ echo $CHEZMOI_AGE_KEY | age -d -i - file1.age
+              ├─ file2.age → chezmage-shim
+              └─ ...
+              GPG calls: once per key file
+              YubiKey touch: once within gpg-agent cache
+```
 
-- Docker
-- Visual Studio Code
-- VS Code Dev Containers 拡張機能
+## Security
 
-## セットアップ
+| Measure                  | Implementation                                   |
+| ------------------------ | ------------------------------------------------ |
+| mlock() / VirtualLock()  | Prevent key memory from being swapped            |
+| zeroize (Zeroizing\<T\>) | Zero memory on drop                              |
+| RLIMIT_CORE = 0          | Disable core dumps                               |
+| PR_SET_DUMPABLE = 0      | Block ptrace + protect /proc/PID/environ (Linux) |
+| No disk writes           | Keys exist only in process memory                |
+| Process exit = cleanup   | SIGKILL included — env var vanishes with process |
 
-1. リポジトリをクローン:
+## Build
 
 ```bash
-git clone <repository-url>
-cd boilerplate-rust
+# Debug build
+mise run build
+
+# Release build
+cargo build --release
+
+# With OpenTelemetry support
+cargo build --features otel
 ```
 
-2. VS Codeでプロジェクトを開く:
+## Install
 
 ```bash
-code .
+install -m 755 target/release/chezmage ~/.local/bin/
+ln -s chezmage ~/.local/bin/chezmage-shim
 ```
 
-3. VS Codeのコマンドパレット（`Ctrl+Shift+P` / `Cmd+Shift+P`）から「Dev Containers: Reopen in Container」を選択
+## Setup
 
-## 使い方
-
-すべてのタスクは `mise run <task>` で実行します。
-
-### 基本操作
+### 1. Generate age key and encrypt with GPG
 
 ```bash
-mise run build            # デバッグビルド
-mise run build:release    # リリースビルド
-mise run test             # テスト実行
-mise run test:watch       # TDD ウォッチモード
-mise run test:doc         # ドキュメントテスト
+age-keygen -o /tmp/age-key.txt
+# Public key: age1xxxx...
+
+gpg -e -r YOUR_GPG_KEY_ID -o ~/.config/chezmoi/age-key.gpg /tmp/age-key.txt
+shred -u /tmp/age-key.txt
 ```
 
-### コード品質
+### 2. Configure chezmoi.toml
+
+```toml
+encryption = "age"
+
+[age]
+identity = "~/.config/chezmoi/age-key.gpg"
+command = "~/.local/bin/chezmage-shim"
+recipient = "age1xxxx..."
+```
+
+See [examples/dot_chezmoi.toml.tmpl](./examples/dot_chezmoi.toml.tmpl) for a full template.
+
+### 3. Use
 
 ```bash
-mise run fmt              # フォーマット (cargo fmt + dprint)
-mise run fmt:check        # フォーマットチェック
-mise run clippy           # Lint
-mise run clippy:strict    # Lint (warnings をエラー扱い)
-mise run ast-grep         # ast-grep カスタムルールチェック
+chezmage apply
+chezmage diff
+chezmage add --encrypt ~/.ssh/config
+
+# Recommended alias
+alias chezmoi='chezmage'
 ```
 
-### コミット前チェック
+## Identity discovery priority
+
+1. **chezmoi.toml** `[age] identity` / `identities` (excluding `/dev/null`, `NUL`)
+2. **Environment variable** `CHEZMOI_AGE_GPG_KEY_FILE` (comma/semicolon separated)
+3. **Auto-scan** config directories for `*.gpg` / `*.asc` files
+
+## Environment variables
+
+| Variable                   | Purpose                                        |
+| -------------------------- | ---------------------------------------------- |
+| `CHEZMOI_AGE_GPG_KEY_FILE` | Key file path(s) as fallback (comma separated) |
+| `CHEZMOI_AGE_KEY`          | (Internal) Pre-decrypted key. Skips GPG if set |
+| `CHEZMOI_CONFIG`           | Override chezmoi config file path              |
+| `XDG_CONFIG_HOME`          | Override config search path                    |
+
+## Development
 
 ```bash
-mise run pre-commit       # fmt:check + clippy:strict + ast-grep
+mise run test          # All tests (unit + integration)
+mise run pre-commit    # fmt:check + clippy:strict + ast-grep
+mise run coverage      # Coverage report
 ```
-
-## プロジェクト構造
-
-```
-.
-├── .cargo/                     # Cargo設定
-│   └── config.toml
-├── .devcontainer/              # Dev Container設定
-│   ├── devcontainer.json       # Dev Container設定ファイル
-│   ├── initializeCommand.sh    # 初期化コマンド
-│   └── postStartCommand.sh     # 起動後コマンド
-├── .githooks/                  # Git hooks (mise run 連携)
-│   ├── commit-msg              # Conventional Commits 検証
-│   ├── pre-commit              # コミット前チェック
-│   └── pre-push                # プッシュ前チェック
-├── .github/                    # GitHub Actions & 設定
-│   ├── actions/                # カスタムアクション
-│   ├── rulesets/               # Protection rulesets
-│   ├── workflows/              # CI/CD ワークフロー
-│   ├── labeler.yml
-│   └── release.yml
-├── .vscode/                    # VS Code設定
-│   ├── launch.json             # デバッグ設定
-│   └── settings.json           # ワークスペース設定
-├── ast-rules/                  # ast-grep プロジェクトルール
-├── docs/                       # ドキュメント
-│   └── project_rules.md        # プロジェクトルール
-├── src/                        # ソースコード
-│   ├── main.rs                 # アプリケーションのエントリーポイント
-│   ├── libs.rs                 # モジュール定義
-│   └── libs/
-│       └── hello.rs            # Helloモジュール
-├── tests/                      # 統合テスト
-│   └── integration_test.rs
-├── .editorconfig               # エディター設定
-├── .gitignore                  # Git除外設定
-├── .octocov.yml                # カバレッジレポート設定
-├── .tagpr                      # タグ&リリース設定
-├── build.rs                    # ビルドスクリプト
-├── Cargo.lock                  # 依存関係のロックファイル
-├── Cargo.toml                  # プロジェクト設定と依存関係
-├── deny.toml                   # cargo-deny 設定
-├── Dockerfile                  # Dockerイメージ定義
-├── dprint.jsonc                # Dprint フォーマッター設定
-├── LICENSE                     # ライセンスファイル
-├── mise.toml                   # ツール管理 & タスクランナー
-├── README.md                   # このファイル
-├── renovate.json               # Renovate自動依存関係更新設定
-├── rust-toolchain.toml         # Rust toolchain バージョン固定
-└── sgconfig.yml                # ast-grep 設定ファイル
-```
-
-## VSCode拡張機能
-
-このプロジェクトの Dev Containers には、Rust開発を効率化する以下の拡張機能が含まれています：
-
-### Rust開発
-
-- **[rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)** - Rust言語サポート（コード補完、エラー検出、リファクタリング）
-- **[CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)** - Rustプログラムのデバッグサポート
-- **[Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml)** - Cargo.tomlファイルのシンタックスハイライトとバリデーション
-
-### コード品質・フォーマット
-
-- **[Biome](https://marketplace.visualstudio.com/items?itemName=biomejs.biome)** - 高速なフォーマッターとリンター
-- **[dprint](https://marketplace.visualstudio.com/items?itemName=dprint.dprint)** - 高速なコードフォーマッター（設定ファイル: `dprint.jsonc`）
-- **[EditorConfig for VS Code](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)** - エディター設定の統一
-- **[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)** - エラーと警告をインラインで表示
-
-### 開発支援
-
-- **[Claude Code for VSCode](https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-code)** - AIアシスタントによるコーディング支援
-- **[Calculate](https://marketplace.visualstudio.com/items?itemName=acarreiro.calculate)** - 選択したテキストの計算式を評価
-- **[indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow)** - インデントレベルを色分け表示
-- **[Local History](https://marketplace.visualstudio.com/items?itemName=xyz.local-history)** - ファイルの変更履歴をローカルに保存
-
-### テキスト編集
-
-- **[lowercase](https://marketplace.visualstudio.com/items?itemName=ruiquelhas.vscode-lowercase)** - 選択テキストを小文字に変換
-- **[uppercase](https://marketplace.visualstudio.com/items?itemName=ruiquelhas.vscode-uppercase)** - 選択テキストを大文字に変換
-- **[Markdown All in One](https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one)** - Markdownファイルの編集支援
-
-## ライセンス
-
-このプロジェクトは [LICENSE](./LICENSE) ファイルに記載されているライセンスの下で公開されています。
-
-## 参考資料
-
-- [The Rust Programming Language 日本語版](https://doc.rust-jp.rs/book-ja/)
-- [Developing inside a Container](https://code.visualstudio.com/docs/devcontainers/containers)
-- [Cargo Documentation](https://doc.rust-lang.org/cargo/)
 
 ## Troubleshooting
-
-### Rust debug
 
 ```bash
 RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- help
 ```
+
+## License
+
+AGPL-3.0

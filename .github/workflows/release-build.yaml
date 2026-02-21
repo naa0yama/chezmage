@@ -55,6 +55,7 @@ jobs:
         run: |
           sccache_version=$(grep -E '^ARG SCCACHE_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG SCCACHE_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
           zigbuild_version=$(grep -E '^ARG ZIGBUILD_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG ZIGBUILD_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          auditable_version=$(grep -E '"cargo:cargo-auditable"' mise.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
           package_name=$(grep -E '^\[package\]' -A 10 Cargo.toml | grep -E '^name = "' | sed -E 's/name = "(.*)"/\1/')
 
           if grep -q '^\[\[bin\]\]' Cargo.toml; then
@@ -65,6 +66,7 @@ jobs:
           fi
 
           {
+            echo "auditable=${auditable_version}"
             echo "sccache=${sccache_version}"
             echo "zigbuild=${zigbuild_version}"
             echo "package_name=${package_name}"
@@ -81,6 +83,11 @@ jobs:
         with:
           tool: cargo-zigbuild@${{ steps.versions.outputs.zigbuild }}
 
+      - name: Install cargo-auditable
+        uses: taiki-e/install-action@288875dd3d64326724fa6d9593062d9f8ba0b131 # v2.67.30
+        with:
+          tool: cargo-auditable@${{ steps.versions.outputs.auditable }}
+
       - name: Build release binary
         env:
           TARGET: ${{ matrix.target }}
@@ -88,7 +95,7 @@ jobs:
           set -euxo pipefail
           # Disable mold for cross-compilation (zigbuild handles linking)
           unset RUSTFLAGS
-          cargo zigbuild --release --target "${TARGET}" --verbose
+          cargo auditable zigbuild --release --target "${TARGET}" --verbose
 
       - name: Set binary extension
         id: binary-ext

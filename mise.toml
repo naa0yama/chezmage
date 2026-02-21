@@ -5,6 +5,7 @@ ghalint = "1.5.3"
 zizmor = "1.16.0"
 "cargo:ast-grep" = "0.40.0"
 "cargo:cargo-llvm-cov" = "0.8.0"
+"cargo:cargo-auditable" = "0.6.6"
 "cargo:cargo-deny" = "0.19.0"
 "cargo:cargo-watch" = "8.5.3"
 usage = "2.16.2"
@@ -18,8 +19,8 @@ description = "Debug build"
 run = "cargo build"
 
 [tasks."build:release"]
-description = "Release build"
-run = "cargo build --release"
+description = "Release build (with auditable dependency info)"
+run = "cargo auditable build --release"
 
 [tasks."build:timings"]
 description = "Build with timing analysis"
@@ -96,17 +97,21 @@ run = "cargo audit"
 description = "Check licenses and dependencies"
 run = "cargo deny check"
 
+[tasks.miri]
+description = "Run Miri to detect undefined behavior"
+run = "cargo +nightly miri test"
+
 [tasks.zigbuild]
 description = "Cross-compile for specific target"
-run = "cargo zigbuild --release --target ${TARGET:-x86_64-unknown-linux-gnu} --verbose"
+run = "cargo auditable zigbuild --release --target ${TARGET:-x86_64-unknown-linux-gnu} --verbose"
 
 [tasks."zigbuild:all"]
 description = "Cross-compile all Tier 1 targets"
 run = """
-cargo zigbuild --release --target aarch64-apple-darwin
-cargo zigbuild --release --target aarch64-unknown-linux-gnu
-cargo zigbuild --release --target x86_64-pc-windows-gnu
-cargo zigbuild --release --target x86_64-unknown-linux-gnu
+cargo auditable zigbuild --release --target aarch64-apple-darwin
+cargo auditable zigbuild --release --target aarch64-unknown-linux-gnu
+cargo auditable zigbuild --release --target x86_64-pc-windows-gnu
+cargo auditable zigbuild --release --target x86_64-unknown-linux-gnu
 """
 
 [tasks.pre-commit]

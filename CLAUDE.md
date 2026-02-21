@@ -1,5 +1,7 @@
 # Project Summary
 
+**chezmage** (chezmoi + memory + age): GPG-backed age encryption wrapper for chezmoi. Single binary (`chezmage`) + 1 symlink (`chezmage-shim`).
+
 - Think in English, explain, and respond to chat in Japanese.
 - Use half-width brackets instead of full-width brackets in the Japanese explanations output.
 - When writing Japanese and half-width alphanumeric characters or codes in one sentence, please enclose the half-width alphanumeric characters in backquotes and leave half-width spaces before and after them.
@@ -22,6 +24,7 @@ All tasks use `mise run <task>`:
 | Pre-commit (required) | `mise run pre-commit`         |
 | Coverage              | `mise run coverage`           |
 | Deny (licenses/deps)  | `mise run deny`               |
+| Miri (UB detection)   | `mise run miri`               |
 | Build (OTel)          | `cargo build --features otel` |
 
 ## Commit Convention

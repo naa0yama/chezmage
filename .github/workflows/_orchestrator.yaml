@@ -83,6 +83,13 @@ jobs:
       actions: read # octocov artifact
       pull-requests: write # octocov comment
 
+  miri:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust == 'true'
+    uses: ./.github/workflows/miri.yaml
+    permissions:
+      contents: read # Required to checkout the repository for Miri analysis
+
   audit:
     needs: detect-changes
     if: needs.detect-changes.outputs.audit == 'true'
@@ -108,19 +115,21 @@ jobs:
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [rust-ci, audit, container, docs-ci]
+    needs: [rust-ci, miri, audit, container, docs-ci]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Check CI results
         env:
           RUST_CI_RESULT: ${{ needs.rust-ci.result }}
+          MIRI_RESULT: ${{ needs.miri.result }}
           AUDIT_RESULT: ${{ needs.audit.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
           DOCS_CI_RESULT: ${{ needs.docs-ci.result }}
         run: |
           results=(
             "$RUST_CI_RESULT"
+            "$MIRI_RESULT"
             "$AUDIT_RESULT"
             "$CONTAINER_RESULT"
             "$DOCS_CI_RESULT"

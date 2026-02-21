@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Miri (UB detection)
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_call: {}
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: miri-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  miri:
+    name: Miri
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read # Required to checkout the repository
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install nightly toolchain with Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+
+      - name: Run Miri
+        run: cargo +nightly miri test
