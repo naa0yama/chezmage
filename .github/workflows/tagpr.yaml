@@ -34,7 +34,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - id: tagpr
-        uses: Songmu/tagpr@9af562703466442d4256712a000108ff7c3547f1 # v1.16.0
+        uses: Songmu/tagpr@da82ed6743aec90049892070edd5561335904a9e # v1.17.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
