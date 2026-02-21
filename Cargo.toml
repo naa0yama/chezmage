@@ -35,7 +35,7 @@ otel = [
 anyhow = "1.0"
 clap = { version = "4.5.45", features = ["derive"] }
 serde = { version = "1.0.219", features = ["derive"] }
-toml = "0.8"
+toml = "1.0"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 zeroize = { version = "1", features = ["derive"] }
