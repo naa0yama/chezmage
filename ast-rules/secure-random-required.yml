@@ -1,0 +1,37 @@
+id: secure-random-required
+language: rust
+message: "セキュリティ用途にはセキュアな乱数生成を使用してください"
+note: "std::rand::threadではなく、randクレートのCryptoRngを実装した生成器を使用してください"
+severity: warning
+rule:
+  all:
+    # セキュリティ関連のコンテキスト
+    - any:
+        # 関数名にsecurityやcryptoが含まれる
+        - inside:
+            all:
+              - kind: function_item
+              - regex: "(security|crypto|auth|token|key|password|salt|nonce|iv)"
+        # 変数名がセキュリティ関連
+        - inside:
+            all:
+              - kind: let_declaration
+              - regex: "(security|crypto|auth|token|key|password|salt|nonce|iv)"
+    # 標準ライブラリの非セキュア乱数使用
+    - any:
+        - pattern: std::thread_rng()
+        - pattern: rand::thread_rng()
+        - pattern: fastrand::$METHOD($$$)
+  not:
+    any:
+      # ignoreコメントがある場合は除外
+      - precedes:
+          regex: '//\\s*ast-grep-ignore'
+      # テストモジュール内は例外
+      - inside:
+          all:
+            - kind: mod_item
+            - has:
+                regex: 'cfg\\(\\s*test\\s*\\)'
+      # 既にセキュアな生成器を使用している場合
+      - regex: "OsRng|ChaCha20Rng|CryptoRng"

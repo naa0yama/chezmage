@@ -1,0 +1,58 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/go
+{
+	"name": "Rust",
+	"build": {
+		"dockerfile": "../Dockerfile",
+		"target": "development",
+		"args": {
+			"TZ": "${localEnv:TZ:Asia/Tokyo}",
+			"USER_GID": "1100",
+			"USER_UID": "1100"
+		}
+	},
+	"initializeCommand": "./.devcontainer/initializeCommand.sh",
+	"postStartCommand": "./.devcontainer/postStartCommand.sh",
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Add another local file mount.
+	"mounts": [
+		// Claude Code
+		"type=bind,source=${localEnv:HOME}/.claude,target=/home/cuser/.claude",
+		"type=bind,source=${localEnv:HOME}/.claude.json,target=/home/cuser/.claude.json",
+		// Git
+		"type=bind,source=${localEnv:HOME}/.gitconfig.d,target=/home/cuser/.gitconfig.d",
+		// GitHub
+		"type=bind,source=${localEnv:HOME}/.config/gh,target=/home/cuser/.config/gh"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				// 										Rust Syntax, Rust Doc Viewer 同様の機能は rust-analyzer に含まれるので入れない
+				"Anthropic.claude-code", // 			Claude Code for VSCode
+				"dprint.dprint", // 					Dprint Code Formatter
+				"EditorConfig.EditorConfig", // 		EditorConfig for VS Code
+				"ms-azuretools.vscode-containers", // 	Container Tools
+				"ms-vscode.live-server", // 			Live Preview
+				"redhat.vscode-yaml", // 				YAML
+				"rust-lang.rust-analyzer", // 			rust-analyzer
+				"ryanluker.vscode-coverage-gutters", // Coverage Gutters
+				"tamasfe.even-better-toml", // 			Even Better TOML
+				"usernamehw.errorlens", // 				Error Lens
+				"vadimcn.vscode-lldb", // 				CodeLLDB
+				"xyz.local-history" // 					Local History
+			],
+			"settings": {
+				"dprint.path": "/home/cuser/.local/share/mise/shims/dprint"
+			}
+		}
+	},
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	"remoteUser": "cuser",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=delegated",
+	"workspaceFolder": "/app"
+}

@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Lint GitHub Actions
+on:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: actionlint-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  actionlint:
+    name: actionlint
+    permissions:
+      actions: read # for codeql-action/upload-sarif telemetry
+      contents: read # to check out the code
+      security-events: write # for uploading the SARIF report
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ACTIONLINT_VERSION: 03d0035246f3e81f36aed592ffb4bebf33a03106 # v1.7.7
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Check workflow files
+        run: |
+          bash <(curl "https://raw.githubusercontent.com/rhysd/actionlint/${ACTIONLINT_VERSION}/scripts/download-actionlint.bash")
+          ./actionlint -verbose -format "$(cat .github/workflows/actionlint-format.txt)" | tee results.sarif
+        shell: bash
+
+      - name: Upload to GitHub security events
+        if: success() || failure()
+        uses: github/codeql-action/upload-sarif@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
+        with:
+          sarif_file: results.sarif
+          category: actionlint
+
+  zizmor:
+    name: zizmor
+    permissions:
+      actions: read # for codeql-action/upload-sarif telemetry
+      contents: read # Required to checkout the repository
+      security-events: write # add zizmor security events
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor 🌈
+        uses: zizmorcore/zizmor-action@0dce2577a4760a2749d8cfb7a84b7d5585ebcb7d # v0.5.0
+        with:
+          persona: pedantic
+
+  summary:
+    name: summary
+    if: always()
+    needs: [actionlint, zizmor]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summary
+        run: |
+          set -euo pipefail
+
+          cat <<EOF>> "${GITHUB_STEP_SUMMARY}"
+          ## Linting Results
+          | Tool | Status |
+          |------|--------|
+          | actionlint | "${NEEDS_ACTIONLINT_RESULT}" |
+          | zizmor | "${NEEDS_ZIZMOR_RESULT}" |
+
+          EOF
+
+        env:
+          NEEDS_ACTIONLINT_RESULT: ${{ needs.actionlint.result }}
+          NEEDS_ZIZMOR_RESULT: ${{ needs.zizmor.result }}

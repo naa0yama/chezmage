@@ -1,0 +1,35 @@
+id: no-blocking-in-async
+language: rust
+message: "async関数内で同期I/O操作が検出されました"
+note: "async版を使用してください: std::fs -> tokio::fs, std::thread::sleep -> tokio::time::sleep"
+severity: error
+rule:
+  all:
+    # async関数内での使用
+    - inside:
+        all:
+          - kind: function_item
+          - regex: 'async\\s+fn'
+    # 同期I/O操作をマッチ
+    - any:
+        # ファイルシステム操作
+        - pattern: std::fs::$METHOD($$$)
+        - pattern: std::fs::File::$METHOD($$$)
+        - pattern: std::fs::OpenOptions::$METHOD($$$)
+        # スレッド操作
+        - pattern: std::thread::sleep($$$)
+        # ネットワーク操作
+        - pattern: std::net::$TYPE::$METHOD($$$)
+        # プロセス操作
+        - pattern: std::process::Command::$METHOD($$$)
+  not:
+    any:
+      # ignoreコメントがある場合は除外
+      - precedes:
+          regex: '//\\s*ast-grep-ignore'
+      # テストモジュール内は例外
+      - inside:
+          all:
+            - kind: mod_item
+            - has:
+                regex: 'cfg\\(\\s*test\\s*\\)'

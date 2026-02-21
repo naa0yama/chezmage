@@ -1,0 +1,118 @@
+[tools]
+dprint = "0.51.1"
+actionlint = "1.7.10"
+ghalint = "1.5.3"
+zizmor = "1.16.0"
+"cargo:ast-grep" = "0.40.0"
+"cargo:cargo-llvm-cov" = "0.8.0"
+"cargo:cargo-deny" = "0.19.0"
+"cargo:cargo-watch" = "8.5.3"
+usage = "2.16.2"
+
+[tasks.setup]
+description = "Initial project setup"
+run = "chmod +x .githooks/*"
+
+[tasks.build]
+description = "Debug build"
+run = "cargo build"
+
+[tasks."build:release"]
+description = "Release build"
+run = "cargo build --release"
+
+[tasks."build:timings"]
+description = "Build with timing analysis"
+run = "cargo build --timings"
+
+[tasks.check]
+description = "Compile check"
+run = "cargo check --all-targets --all-features"
+
+[tasks.test]
+description = "Run tests"
+run = "cargo test --all-targets"
+
+[tasks."test:watch"]
+description = "TDD watch mode"
+run = "cargo watch -x 'test --all-targets'"
+
+[tasks."test:doc"]
+description = "Run doc tests"
+run = "cargo test --doc"
+
+[tasks.coverage]
+description = "Generate LCOV coverage report"
+run = "cargo llvm-cov --lcov --output-path target/lcov.info"
+
+[tasks."coverage:html"]
+description = "Generate HTML coverage report and open"
+run = "cargo llvm-cov --html --open"
+
+[tasks.fmt]
+description = "Run all formatters"
+run = """
+cargo fmt
+dprint fmt
+"""
+
+[tasks."fmt:check"]
+description = "Check all formatting"
+run = """
+cargo fmt -- --check
+dprint check
+"""
+
+[tasks.clippy]
+description = "Run clippy lints"
+run = "cargo clippy --all-targets --all-features"
+
+[tasks."clippy:strict"]
+description = "Run clippy lints (warnings as errors)"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks.ast-grep]
+description = "Run ast-grep custom rules check"
+run = "sg scan --error --color never"
+
+[tasks.lint]
+description = "Run all lints"
+depends = ["fmt:check", "clippy:strict", "ast-grep"]
+
+[tasks."lint:gh"]
+description = "Lint GitHub Actions workflows"
+run = """
+actionlint
+ghalint run
+ghalint run-action
+zizmor --persona=pedantic .github/
+"""
+
+[tasks.audit]
+description = "Audit dependencies"
+run = "cargo audit"
+
+[tasks.deny]
+description = "Check licenses and dependencies"
+run = "cargo deny check"
+
+[tasks.zigbuild]
+description = "Cross-compile for specific target"
+run = "cargo zigbuild --release --target ${TARGET:-x86_64-unknown-linux-gnu} --verbose"
+
+[tasks."zigbuild:all"]
+description = "Cross-compile all Tier 1 targets"
+run = """
+cargo zigbuild --release --target aarch64-apple-darwin
+cargo zigbuild --release --target aarch64-unknown-linux-gnu
+cargo zigbuild --release --target x86_64-pc-windows-gnu
+cargo zigbuild --release --target x86_64-unknown-linux-gnu
+"""
+
+[tasks.pre-commit]
+description = "Pre-commit checks (fast)"
+depends = ["fmt:check", "clippy:strict", "ast-grep"]
+
+[tasks.pre-push]
+description = "Pre-push checks (comprehensive)"
+depends = ["lint", "test", "coverage", "build:release", "lint:gh"]

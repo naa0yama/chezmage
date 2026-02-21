@@ -1,0 +1,41 @@
+id: error-context-required
+language: rust
+message: "? 演算子にエラーコンテキストがありません"
+note: ".with_context(|| format!(\"failed to {操作}: {引数}\"))?; で操作内容と引数値を含めてください"
+severity: warning
+rule:
+  all:
+    # ?演算子の使用
+    - pattern: $EXPR?
+    # Result<T, E>を返しそうな操作
+    - any:
+        # ファイル操作
+        - regex: "(fs::|File::|OpenOptions::)"
+        # ネットワーク操作
+        - regex: "(connect|bind|listen|send|recv)"
+        # パース操作
+        - regex: "(parse|from_str|deserialize)"
+    # contextメソッドが使われていない (AST ベース、複数行対応)
+    - not:
+        has:
+          any:
+            - pattern: $A.context($$$)
+            - pattern: $A.with_context($$$)
+  not:
+    any:
+      # ignoreコメントがある場合は除外
+      - precedes:
+          regex: '//\s*ast-grep-ignore'
+      # テストモジュール内は例外
+      - inside:
+          all:
+            - kind: mod_item
+            - has:
+                regex: 'cfg\(\s*test\s*\)'
+      # 既にexpectやunwrap_or等でハンドリングしている場合 (AST ベース)
+      - has:
+          any:
+            - pattern: $A.expect($$$)
+            - pattern: $A.unwrap_or($$$)
+            - pattern: $A.unwrap_or_else($$$)
+            - pattern: $A.unwrap_or_default()

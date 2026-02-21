@@ -1,0 +1,23 @@
+id: module-size-limit
+language: rust
+message: "モジュールが大きすぎます (500行超)"
+note: "モジュールを小さな単位に分割することを検討してください"
+severity: warning
+rule:
+  # この実装は簡略版。実際の行数チェックはconfigで設定
+  all:
+    # 大きなモジュールの検出（関数が多数存在）
+    - kind: mod_item
+    # 関数が10個以上存在する場合
+    - has:
+        kind: function_item
+        count:
+          min: 10
+  not:
+    any:
+      # ignoreコメントがある場合は除外
+      - has:
+          regex: '//\\s*ast-grep-ignore'
+      # テストモジュールは例外
+      - has:
+          regex: 'cfg\\(\\s*test\\s*\\)'

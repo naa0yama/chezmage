@@ -1,0 +1,18 @@
+---
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - tagpr
+
+  categories:
+    - title: Features 🎉
+      labels: ["enhancement"]
+    - title: Bug Fixes 🐌
+      labels: ["bug"]
+    - title: Documentation 🗒️
+      labels: ["documentation"]
+    - title: Dependency Updates 👒
+      labels: ["renovate"]
+    - title: Other Changes
+      labels: ["*"]

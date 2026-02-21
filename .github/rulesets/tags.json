@@ -1,0 +1,33 @@
+{
+	"name": "tags",
+	"target": "tag",
+	"source_type": "Repository",
+	"source": "naa0yama/boilerplate-rust",
+	"enforcement": "disabled",
+	"conditions": {
+		"ref_name": {
+			"exclude": [],
+			"include": [
+				"v[0-9]*.[0-9]*.[0-9]*"
+			]
+		}
+	},
+	"rules": [
+		{
+			"type": "creation"
+		},
+		{
+			"type": "update"
+		},
+		{
+			"type": "deletion"
+		},
+		{
+			"type": "required_signatures"
+		},
+		{
+			"type": "non_fast_forward"
+		}
+	],
+	"bypass_actors": []
+}

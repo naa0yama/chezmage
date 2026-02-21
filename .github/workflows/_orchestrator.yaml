@@ -1,0 +1,134 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: CI
+on:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    name: detect-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read # Required to list changed files in pull request
+    outputs:
+      rust: ${{ steps.changes.outputs.rust }}
+      audit: ${{ steps.changes.outputs.audit }}
+      container: ${{ steps.changes.outputs.container }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+      - name: Detect changed paths
+        id: changes
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            // github.paginate() が全ページを自動取得
+            // (Link ヘッダーを追跡し、次ページがなくなるまで継続)
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const filenames = files.map(f => f.filename);
+
+            // --- パターン定義(編集はここだけ) ---
+            const patterns = {
+              rust: [
+                /\.rs$/,
+                /(^|\/)Cargo\.(toml|lock)$/,
+                /^\.github\/actions\/act-setup-rust\//,
+                /^\.github\/workflows\/rust-ci\.yaml$/,
+                /^ast-rules\/.*\.yml$/,
+                /^mise\.toml$/,
+                /^rust-toolchain\.toml$/,
+              ],
+              audit: [
+                /(^|\/)Cargo\.(toml|lock)$/,
+              ],
+              container: [
+                /^\.devcontainer\//,
+                /^\.github\/workflows\/prebuild-container\.yaml$/,
+                /^Dockerfile$/,
+              ],
+              docs: [
+                /\.md$/,
+                /\.json[c]?$/,
+                /\.toml$/,
+                /\.ya?ml$/,
+                /^docs\//,
+                /^LICENSE$/,
+                /^\.editorconfig$/,
+              ],
+            };
+
+            // --- 判定 ---
+            for (const [category, regexes] of Object.entries(patterns)) {
+              const matched = filenames.some(f => regexes.some(r => r.test(f)));
+              core.setOutput(category, String(matched));
+            }
+
+  # NOTE: actions/checkout 不要 - API のみで完結
+
+  rust-ci:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.rust == 'true'
+    uses: ./.github/workflows/rust-ci.yaml
+    permissions:
+      contents: write # octocov badge push
+      actions: read # octocov artifact
+      pull-requests: write # octocov comment
+
+  audit:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.audit == 'true'
+    uses: ./.github/workflows/audit.yaml
+    permissions:
+      contents: read # Required to checkout the repository for dependency audit
+
+  container:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.container == 'true'
+    uses: ./.github/workflows/prebuild-container.yaml
+    permissions:
+      contents: read # Required to checkout the repository
+      packages: write # Required to push container images to registry
+
+  docs-ci:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.docs == 'true'
+    uses: ./.github/workflows/docs-ci.yaml
+    permissions:
+      contents: read # Required to checkout the repository
+
+  ci-gate:
+    name: CI Gate
+    if: always()
+    needs: [rust-ci, audit, container, docs-ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check CI results
+        env:
+          RUST_CI_RESULT: ${{ needs.rust-ci.result }}
+          AUDIT_RESULT: ${{ needs.audit.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+          DOCS_CI_RESULT: ${{ needs.docs-ci.result }}
+        run: |
+          results=(
+            "$RUST_CI_RESULT"
+            "$AUDIT_RESULT"
+            "$CONTAINER_RESULT"
+            "$DOCS_CI_RESULT"
+          )
+          for result in "${results[@]}"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "::error::CI failed: $result"
+              exit 1
+            fi
+          done
+          echo "All CI checks passed or were correctly skipped."

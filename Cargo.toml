@@ -1,0 +1,144 @@
+[package]
+name = "brust"
+version = "0.1.0"
+categories = ["command-line-utilities"]
+edition = "2024"
+keywords = ["cli", "tool"]
+license = "AGPL3.0"
+repository = "https://github.com/naa0yama/boilerplate-rust"
+description = "A CLI tool built following project rules standards"
+
+[profile.dev]
+opt-level = 1 #		開発時のコンパイル速度向上
+
+[profile.release]
+strip = "symbols"
+debug = 1 #			リリースビルドでもスタックトレース可能に
+
+[features]
+default = []
+otel = [
+	"dep:opentelemetry",
+	"dep:opentelemetry_sdk",
+	"dep:opentelemetry-otlp",
+	"dep:tracing-opentelemetry",
+]
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5.45", features = ["derive"] }
+reqwest = { version = "0.13.1", default-features = false, features = ["json", "rustls"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.137"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+
+# OpenTelemetry (optional, behind `otel` feature)
+opentelemetry = { version = "0.31", optional = true }
+opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"], optional = true }
+opentelemetry_sdk = { version = "0.31", default-features = false, features = ["trace"], optional = true }
+tracing-opentelemetry = { version = "0.32", default-features = false, optional = true }
+
+[dev-dependencies]
+assert_cmd = "=2.1.2"
+predicates = "=3.1.4"
+tracing-mock = "=0.1.0-beta.3"
+
+[lints.clippy]
+# project_rules.md に基づくlint設定（priority=-1で個別設定を優先）
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# 安全性の基礎 - メモリ安全性
+redundant_clone = "warn" #                       不要なclone()呼び出しを検出(パフォーマンス低下防止)
+needless_borrowed_reference = "warn" #           &ref xパターンを検出(借用の理解不足を防止)
+rc_mutex = "warn" #                              Rc<Mutex<T>>を検出(Arc<Mutex<T>>推奨でスレッド安全性確保)
+
+# 安全性の基礎 - エラーハンドリング
+unwrap_used = { level = "warn", priority = 1 } # unwrap()警告(パニック防止、適切なエラー処理強制)
+expect_used = { level = "warn", priority = 1 } # expect()警告(テスト以外では?演算子推奨)
+panic = { level = "warn", priority = 1 } #       panic! 使用警告(回復可能エラーの適切処理推奨)
+question_mark = "warn" #                         ?演算子使用推奨(冗長なmatch文の簡略化)
+match_result_ok = "warn" #                       Result.ok()によるエラー無視を警告
+result_unit_err = "warn" #                       Result<T, ()>の使用を警告(適切なエラー型使用推奨)
+result_large_err = "warn" #                      大きなエラー型の使用を警告(Box化推奨)
+
+# 安全性の基礎 - 型安全性
+cast_possible_truncation = "warn" #              値切り捨てが起こるキャストを警告(データ損失防止)
+cast_precision_loss = "warn" #                   精度損失が起こるキャストを警告(浮動小数点精度保持)
+
+# パフォーマンス最適化 - イテレータとコレクション
+needless_collect = "warn" #                      不要な.collect()を検出(中間コレクション生成回避)
+manual_find_map = "warn" #                       .find().map()を.find_map()で最適化提案
+reserve_after_initialization = "warn" #          Vec容量の事前確保を推奨
+manual_filter_map = "warn" #                     手動filter+mapをfilter_mapで最適化提案
+map_flatten = "warn" #                           .map().flatten()を.flat_map()で最適化提案
+unnecessary_to_owned = "warn" #                  不要なto_owned()呼び出しを検出(所有権移動回避)
+single_element_loop = "warn" #                   1要素ループをif文で最適化提案
+
+# パフォーマンス最適化 - 文字列処理
+inefficient_to_string = "warn" #                 非効率なto_string()を検出(直接変換推奨)
+str_to_string = "warn" #                         &str.to_string()を検出(String::from推奨)
+string_to_string = "warn" #                      String.to_string()を検出(clone推奨)
+format_in_format_args = "warn" #                 format!内のformat!を検出(直接引数推奨)
+manual_string_new = "warn" #                     String::new()の代替パターンを検出
+
+# パフォーマンス最適化 - メモリ効率
+box_collection = "warn" #                        Box<Vec<T>>等を検出(直接使用推奨)
+large_enum_variant = "warn" #                    大きなenum variantを検出(Box化推奨)
+trivial_regex = "warn" #                         単純文字列比較でregex使用を検出
+
+# コード組織 - API設計とコンベンション
+wrong_self_convention = "warn" #                 self引数の命名規則違反を検出(to_*/as_*/into_*)
+should_implement_trait = "warn" #                標準トレイト実装推奨(Display, From等)
+missing_errors_doc = "warn" #                    エラー条件のドキュメント不足を警告
+missing_panics_doc = "warn" #                    パニック条件のドキュメント不足を警告
+missing_safety_doc = "warn" #                    unsafe関数のSAFETYドキュメント不足を警告
+
+# コード組織 - 複雑性管理
+cognitive_complexity = "warn" #                  認知的複雑性が高い関数を警告
+too_many_lines = "warn" #                        長すぎる関数を警告
+too_many_arguments = "warn" #                    引数が多すぎる関数を警告
+type_complexity = "warn" #                       複雑すぎる型定義を警告
+
+# コード組織 - モジュール設計
+module_name_repetitions = "warn" #               モジュール名の重複を警告
+wildcard_imports = "warn" #                      ワイルドカードインポート使用を警告
+pub_underscore_fields = "warn" #                 pub _field使用を警告(設計問題)
+large_stack_arrays = "warn" #                    大きなスタック配列を警告
+
+# セキュリティ・品質 - デバッグとTODO管理
+dbg_macro = "warn" #                             dbg!マクロを本番コードで警告
+todo = "warn" #                                  TODO残留を警告
+unimplemented = "warn" #                         unimplemented!残留を警告
+unreachable = "warn" #                           unreachable!使用を警告
+
+# セキュリティ・品質 - 数値とメモリ安全性
+float_cmp = "warn" #                             浮動小数点の直接比較を警告
+arithmetic_side_effects = "warn" #               整数演算オーバーフローリスクを警告
+as_conversions = "warn" #                        asキャストの危険性を警告
+indexing_slicing = "warn" #                      範囲外アクセスリスクを警告
+
+# セキュリティ・品質 - API安全性
+empty_drop = "warn" #                            空のDrop実装を警告
+mem_forget = "warn" #                            mem::forget使用を警告
+exit = "warn" #                                  process::exit使用を警告
+create_dir = "warn" #                            create_dirよりcreate_dir_all推奨
+
+# セキュリティ・品質 - unsafeブロック
+undocumented_unsafe_blocks = "warn" #            unsafeブロックにSAFETYコメント必須
+
+# セキュリティ・品質 - 出力制御
+print_stdout = "warn" #                          println!/print!の使用を警告(tracing推奨)
+print_stderr = "warn" #                          eprintln!/eprint!の使用を警告(tracing推奨)
+
+# 例外設定（プロジェクトの性質上許可するもの）
+multiple-crate-versions = "allow"
+cargo-common-metadata = "allow"
+
+[lints.rust]
+warnings = "warn"
+missing_debug_implementations = "warn" #         Debugトレイト未実装を警告
+missing_docs = "warn" #                          pub項目のドキュメント不足を警告

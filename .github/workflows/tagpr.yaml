@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: tagpr
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # zizmor: ignore[concurrency-limits] tag creation must not be cancelled mid-flight
+
+jobs:
+  tagpr:
+    name: tagpr
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.tagpr.outputs.tag }}
+    permissions:
+      contents: write # Required to create tags and update files
+      pull-requests: write # Required to create and update pull requests
+      issues: write # Required to manage release issues
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
+        with:
+          install_args: dprint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - id: tagpr
+        uses: Songmu/tagpr@78a926ba835e34721053309043aee696ba9c70b1 # v1.15.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Format CHANGELOG.md
+        if: steps.tagpr.outputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_BRANCH=$(gh pr list --state open --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("tagpr-from-"))][0].headRefName // empty')
+          if [ -z "$PR_BRANCH" ]; then
+            echo "No tagpr release PR found, skipping"
+            exit 0
+          fi
+          git fetch origin "${PR_BRANCH}"
+          git checkout -f "${PR_BRANCH}"
+          if [ -f CHANGELOG.md ]; then
+            dprint fmt CHANGELOG.md
+            if ! git diff --quiet CHANGELOG.md; then
+              FILE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/CHANGELOG.md?ref=${PR_BRANCH}" --jq '.sha')
+              gh api "repos/${GITHUB_REPOSITORY}/contents/CHANGELOG.md" \
+                --method PUT \
+                -f message="[tagpr] format CHANGELOG.md" \
+                -f content="$(base64 -w 0 CHANGELOG.md)" \
+                -f sha="${FILE_SHA}" \
+                -f branch="${PR_BRANCH}"
+            fi
+          fi
+
+  release:
+    name: Build and Release
+    needs: tagpr
+    if: needs.tagpr.outputs.tag != ''
+    permissions:
+      contents: write # Required to create releases and tags
+      actions: write # Required for build job to upload artifacts
+    uses: ./.github/workflows/release.yaml
+    with:
+      tag: ${{ needs.tagpr.outputs.tag }}

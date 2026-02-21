@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Cleanup
+on:
+  pull_request:
+    types:
+      - closed
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  cleanup:
+    name: cleanup
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: write # Required to manage GitHub Actions artifacts
+      packages: write # Required to delete package versions
+    steps:
+      - name: Convert repository name to lowercase
+        id: repo_name
+        run: |
+          echo "lowercase=${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]' >> "$GITHUB_OUTPUT"
+
+      - name: Cleanup Cache
+        run: |
+          gh extension install actions/gh-actions-cache
+
+          echo "Fetching list of cache key"
+          cacheKeysForPR=$(gh actions-cache list -R "${REPO}" -B "${BRANCH}" | cut -f 1 )
+
+          ## Setting this to not fail the workflow while deleting cache keys.
+          set +e
+          echo "Deleting caches..."
+          for cacheKey in $cacheKeysForPR
+          do
+              echo "Deleting cacheKey... ${cacheKey}"
+              gh actions-cache delete "${cacheKey}" -R "${REPO}" -B "${BRANCH}" --confirm
+          done
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          # BRANCH: ${{ github.ref }}
+          # https://github.com/github/docs/issues/22727
+          # BRANCH: 'refs/pull/${{ github.event.pull_request.number }}/merge'
+          # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-your-workflow-based-on-the-head-or-base-branch-of-a-pull-request
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+
+      - name: Delete untagged containers
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: ${{ steps.repo_name.outputs.lowercase }}/devcontainer
+          package-type: "container"
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: true

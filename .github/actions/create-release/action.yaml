@@ -1,0 +1,213 @@
+# yaml-language-server: $schema=https://www.schemastore.org/github-action.json
+name: "Create Release"
+description: "Download artifacts, prepare release assets, and create GitHub release"
+inputs:
+  tag:
+    description: "Release tag"
+    required: true
+  github_token:
+    description: "GitHub token"
+    required: true
+    default: ${{ github.token }}
+  draft:
+    description: "Create draft release"
+    required: false
+    default: "false"
+  prerelease:
+    description: "Mark as prerelease"
+    required: false
+    default: "false"
+
+outputs:
+  url:
+    description: "URL of the created release"
+    value: ${{ steps.create-release.outputs.url }}
+  upload_url:
+    description: "Upload URL for additional assets"
+    value: ${{ steps.create-release.outputs.upload_url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        path: ./artifacts
+        pattern: "*-${{ inputs.tag }}-*"
+      continue-on-error: true
+      id: download-artifacts
+
+    - name: Check artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Checking downloaded artifacts..."
+        if [ ! -d "./artifacts" ] || [ -z "$(find ./artifacts -name "*" -type f 2>/dev/null)" ]; then
+          echo "ERROR: No artifacts found or download failed"
+          echo "Available artifacts directory contents:"
+          ls -la ./artifacts/ || echo "No artifacts directory found"
+          exit 1
+        fi
+
+        echo "Found artifacts:"
+        find ./artifacts -type f -name "*" | head -20
+
+        # Count expected vs actual artifacts (5 targets expected)
+        artifact_count=$(find ./artifacts -type f \( -executable -o -name "*.exe" \) | wc -l)
+        echo "Found ${artifact_count} binary artifacts"
+
+        if [ "$artifact_count" -eq 0 ]; then
+          echo "ERROR: No binary artifacts found"
+          exit 1
+        elif [ "$artifact_count" -lt 5 ]; then
+          echo "WARNING: Expected 5 artifacts but found ${artifact_count}"
+        fi
+
+    - name: Prepare release assets
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euxo pipefail
+        mkdir -p release-assets
+
+        # Process binary artifacts
+        find ./artifacts -type f \( -executable -o -name "*.exe" \) | while read -r file; do
+          echo "Processing: $file"
+
+          # Extract target from artifact directory name
+          dir_name=$(basename "$(dirname "$file")")
+          # Pattern: {binary_name}-{tag}-{target}
+          target=$(echo "$dir_name" | sed -E 's/.*-([a-zA-Z0-9_-]+)$/\1/')
+          binary_name=$(basename "$file")
+
+          if [ -z "$target" ]; then
+            echo "ERROR: Could not extract target from directory name: $dir_name"
+            continue
+          fi
+
+          echo "Target: $target, Binary: $binary_name"
+
+          # Create compressed archive based on platform
+          if [[ "$target" == *windows* ]]; then
+            zip_name="${binary_name%.*}-${TAG}-${target}.zip"
+            echo "Creating ZIP: $zip_name"
+            zip -j "release-assets/$zip_name" "$file"
+          else
+            tar_name="${binary_name}-${TAG}-${target}.tar.gz"
+            echo "Creating TAR: $tar_name"
+            tar -czf "release-assets/$tar_name" -C "$(dirname "$file")" "$(basename "$file")"
+          fi
+        done
+
+        echo "Release assets created:"
+        ls -la release-assets/
+
+        # Verify we have release assets
+        if [ -z "$(ls -A release-assets/)" ]; then
+          echo "ERROR: No release assets were created"
+          exit 1
+        fi
+
+    - name: Generate release notes
+      shell: bash
+      id: release-notes
+      env:
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+
+        # Create release notes with artifact information
+        cat > release_notes.md << EOF
+        ## 🚀 Release ${TAG}
+
+        This release includes pre-built binaries for multiple platforms:
+
+        ### 📦 Available Downloads
+
+        | Platform | Architecture | Download |
+        |----------|--------------|----------|
+        EOF
+
+        # Add download links for each asset
+        for asset in release-assets/*; do
+          if [ -f "$asset" ]; then
+            filename=$(basename "$asset")
+            case "$filename" in
+              *darwin*)
+                platform="macOS"
+                arch="ARM64 (Apple Silicon)"
+                ;;
+              *linux-gnu*x86_64*)
+                platform="Linux"
+                arch="x86_64 (GNU)"
+                ;;
+              *linux-gnu*aarch64*)
+                platform="Linux"
+                arch="ARM64 (GNU)"
+                ;;
+              *windows-msvc*)
+                platform="Windows"
+                arch="x86_64 (MSVC)"
+                ;;
+              *windows-gnu*)
+                platform="Windows"
+                arch="x86_64 (GNU)"
+                ;;
+              *)
+                platform="Other"
+                arch="Unknown"
+                ;;
+            esac
+            echo "| ${platform} | ${arch} | \`${filename}\` |" >> release_notes.md
+          fi
+        done
+
+        cat >> release_notes.md << 'EOF'
+
+        ### 🛠️ Build Information
+
+        - Built with: `cargo-zigbuild` + `sccache`
+        - Cross-compilation: Zig toolchain
+        - Optimization: Release profile with symbol stripping
+
+        ---
+
+        🤖 *This release was automatically built and published by GitHub Actions*
+        EOF
+
+        echo "Generated release notes:"
+        cat release_notes.md
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+      id: create-release
+      with:
+        tag_name: ${{ inputs.tag }}
+        body_path: release_notes.md
+        files: release-assets/*
+        draft: ${{ inputs.draft == 'true' }}
+        prerelease: ${{ inputs.prerelease == 'true' }}
+        fail_on_unmatched_files: true
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Release summary
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        RELEASE_URL: ${{ steps.create-release.outputs.url }}
+        DRAFT: ${{ inputs.draft }}
+        PRERELEASE: ${{ inputs.prerelease }}
+      run: |
+        printf "✅ Release %s created successfully!\n" "${TAG}"
+        echo "📦 Assets uploaded: $(ls -1 release-assets/ | wc -l)"
+        printf "🔗 Release URL: %s\n" "${RELEASE_URL}"
+
+        echo "## 📋 Release Summary" >> $GITHUB_STEP_SUMMARY
+        printf "- **Tag**: %s\n" "${TAG}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Assets**: $(ls -1 release-assets/ | wc -l)" >> $GITHUB_STEP_SUMMARY
+        printf "- **Release URL**: %s\n" "${RELEASE_URL}" >> $GITHUB_STEP_SUMMARY
+        printf "- **Draft**: %s\n" "${DRAFT}" >> $GITHUB_STEP_SUMMARY
+        printf "- **Prerelease**: %s\n" "${PRERELEASE}" >> $GITHUB_STEP_SUMMARY

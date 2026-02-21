@@ -1,0 +1,210 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Rust CI
+on:
+  workflow_call: {}
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: rust-ci-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+env:
+  CARGO_TERM_COLOR: always
+  SCCACHE_GHA_ENABLED: "true"
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # Required to checkout the repository
+    outputs:
+      binary_name: ${{ steps.versions.outputs.binary_name }}
+      package_name: ${{ steps.versions.outputs.package_name }}
+      sccache: ${{ steps.versions.outputs.sccache }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Check Rust version consistency
+        run: |
+          rust_version=$(grep -E '^FROM rust:[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/FROM rust:([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          tool_version=$(grep -E '^channel = "[0-9]+\.[0-9]+\.[0-9]+"' rust-toolchain.toml | sed -E 's/channel = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
+          if [ "$rust_version" != "$tool_version" ]; then
+            echo "ERROR: Rust version mismatch! Dockerfile: $rust_version, rust-toolchain.toml: $tool_version"
+            exit 1
+          fi
+
+      - name: Extract tool versions
+        id: versions
+        run: |
+          sccache_version=$(grep -E '^ARG SCCACHE_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG SCCACHE_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          package_name=$(grep -E '^\[package\]' -A 10 Cargo.toml | grep -E '^name = "' | sed -E 's/name = "(.*)"/\1/')
+
+          if grep -q '^\[\[bin\]\]' Cargo.toml; then
+            main_bin=$(grep -E '^\[\[bin\]\]' -A 10 Cargo.toml | grep -E '^name = "'"$package_name"'"' | sed -E 's/name = "(.*)"/\1/')
+            binary_name=${main_bin:-$(grep -E '^\[\[bin\]\]' -A 10 Cargo.toml | grep -E '^name = "' | head -n 1 | sed -E 's/name = "(.*)"/\1/')}
+          else
+            binary_name="$package_name"
+          fi
+
+          {
+            echo "sccache=${sccache_version}";
+            echo "package_name=${package_name}";
+            echo "binary_name=${binary_name}";
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Rust setup
+        uses: ./.github/actions/act-setup-rust
+        with:
+          sccache: ${{ steps.versions.outputs.sccache }}
+          sccache_disable_annotations: true
+
+      - name: Cache mise tools
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.local/share/mise
+          key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
+          restore-keys: |
+            mise-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
+        with:
+          cache: false
+
+      - name: Check formatting
+        run: |
+          set -euxo pipefail
+          mise run fmt:check
+
+      - name: Run clippy
+        run: |
+          set -euxo pipefail
+          mise run clippy:strict
+
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    needs: fmt
+    timeout-minutes: 15
+    permissions:
+      contents: read # Required to checkout the repository
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Rust setup
+        uses: ./.github/actions/act-setup-rust
+        with:
+          sccache: ${{ needs.fmt.outputs.sccache }}
+          sccache_disable_annotations: true
+
+      - name: Cache mise tools
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.local/share/mise
+          key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
+          restore-keys: |
+            mise-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
+        with:
+          cache: false
+
+      - name: Check compilation
+        run: |
+          set -euxo pipefail
+          mise run check
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: [fmt, check]
+    timeout-minutes: 15
+    permissions:
+      actions: read #         For octocov to retrieve previous reports from artifacts
+      contents: write #       For octocov to push badges to repository
+      pull-requests: write #  For octocov to comment on pull requests
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Rust setup
+        uses: ./.github/actions/act-setup-rust
+        with:
+          sccache: ${{ needs.fmt.outputs.sccache }}
+
+      - name: Cache mise tools
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.local/share/mise
+          key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
+          restore-keys: |
+            mise-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
+        with:
+          cache: false
+
+      - name: Generate coverage report
+        run: |
+          set -euxo pipefail
+          mise run coverage
+
+      - name: Upload coverage
+        uses: k1LoW/octocov-action@73d561f65d59e66899ed5c87e4621a913b5d5c20 # v1.5.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [fmt, check, test]
+    timeout-minutes: 15
+    permissions:
+      contents: read # Required to checkout the repository
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Rust setup
+        uses: ./.github/actions/act-setup-rust
+        with:
+          sccache: ${{ needs.fmt.outputs.sccache }}
+
+      - name: Cache mise tools
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.local/share/mise
+          key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
+          restore-keys: |
+            mise-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
+        with:
+          cache: false
+
+      - name: Build release binary
+        run: |
+          set -euxo pipefail
+          mise run build:release
+
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: binary-${{ needs.fmt.outputs.binary_name }}
+          path: target/release/${{ needs.fmt.outputs.binary_name }}

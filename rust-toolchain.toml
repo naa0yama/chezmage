@@ -1,0 +1,15 @@
+[toolchain]
+channel = "1.92.0"
+components = [
+	"cargo",
+	"clippy",
+	"llvm-tools",
+	"rust-analyzer",
+	"rust-docs",
+	"rust-src",
+	"rustfmt",
+]
+targets = [
+	"x86_64-unknown-linux-gnu",
+]
+profile = "default"

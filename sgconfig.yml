@@ -1,0 +1,6 @@
+# ast-grep configuration file
+languageGlobs:
+  rust: ["**/*.rs"]
+
+ruleDirs:
+  - ast-rules

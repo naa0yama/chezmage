@@ -1,0 +1,37 @@
+{
+	"files.associations": {
+		".tagpr": "toml"
+	},
+	"[dockerfile]": {
+		"editor.defaultFormatter": "ms-azuretools.vscode-containers"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "dprint.dprint"
+	},
+	"[jsonc]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "dprint.dprint"
+	},
+	"[markdown]": {
+		"editor.defaultFormatter": "dprint.dprint"
+	},
+	"[toml]": {
+		"editor.defaultFormatter": "dprint.dprint"
+	},
+	"[rust]": {
+		"editor.defaultFormatter": "rust-lang.rust-analyzer"
+	},
+	"[yaml]": {
+		"editor.defaultFormatter": "dprint.dprint"
+	},
+	/***************************************************************************
+	 ** Extension: Coverage Gutters
+	 ***********/
+	"coverage-gutters.manualCoverageFilePaths": ["/app/target/lcov.info"],
+	/***************************************************************************
+	 ** Extension: rust-analyzer
+	 ***********/
+	"rust-analyzer.check.command": "clippy",
+	"rust-analyzer.rustfmt.rangeFormatting.enable": true,
+	"rust-analyzer.testExplorer": true
+}

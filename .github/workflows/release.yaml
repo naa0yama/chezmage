@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Release
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false # zizmor: ignore[concurrency-limits] release must not be cancelled mid-flight
+
+jobs:
+  build:
+    uses: ./.github/workflows/release-build.yaml
+    permissions:
+      contents: read # Required to call another workflow
+      actions: write # Required to upload artifacts
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: always() && (needs.build.result == 'success')
+    permissions:
+      contents: write # Required to create releases and upload assets
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create GitHub Release
+        uses: ./.github/actions/create-release
+        id: create-release
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: ${{ contains(inputs.tag || github.ref_name, 'alpha') || contains(inputs.tag || github.ref_name, 'beta') || contains(inputs.tag || github.ref_name, 'rc') }}
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          printf '::error::Release creation failed for tag %s\n' "${RELEASE_TAG}"
+          echo "Check the build job and artifact availability"
+          exit 1
+
+      - name: Release success notification
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          RELEASE_URL: ${{ steps.create-release.outputs.url }}
+        run: |
+          printf '✅ Release %s published successfully!\n' "${RELEASE_TAG}"
+          printf '🔗 Release URL: %s\n' "${RELEASE_URL}"

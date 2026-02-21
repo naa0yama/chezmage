@@ -1,0 +1,13 @@
+id: no-get-prefix
+language: rust
+message: "ゲッターメソッドに get_ プレフィックスは不要 (project_rules.md 3.1)"
+note: "pub fn first(&self) のように直接名前を使用してください"
+severity: warning
+rule:
+  all:
+    - pattern: |
+        fn get_$METHOD($$$) {
+          $$$
+        }
+    - inside:
+        kind: impl_item
