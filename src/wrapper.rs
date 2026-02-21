@@ -163,6 +163,7 @@ mod tests {
     use crate::test_utils::{ENV_LOCK, EnvGuard};
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_load_identity_plaintext() {
         // Arrange
         let dir = TempDir::new().unwrap();
@@ -178,6 +179,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses filesystem access unsupported under Miri isolation
     fn test_load_identity_missing_file() {
         // Arrange
         let path = PathBuf::from("/nonexistent/path/key.txt");
@@ -202,6 +204,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_collect_identity_paths_from_env() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -221,6 +224,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_collect_identity_paths_from_config_file() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -249,6 +253,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_collect_identity_paths_comma_separated_env() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -272,6 +277,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_collect_identity_paths_semicolon_separated_env() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -293,6 +299,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_collect_identity_paths_auto_scan_gpg_files() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -323,6 +330,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses filesystem access unsupported under Miri isolation
     fn test_load_identity_missing_file_error_message() {
         // Arrange
         let path = PathBuf::from("/nonexistent/path/key.txt");
@@ -339,6 +347,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_load_identity_plaintext_trims_trailing_whitespace() {
         // Arrange
         let dir = TempDir::new().unwrap();

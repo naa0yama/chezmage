@@ -134,6 +134,7 @@ mod tests {
     use crate::test_utils::{ENV_LOCK, EnvGuard};
 
     #[test]
+    #[cfg_attr(miri, ignore)] // HOME env var not forwarded under Miri isolation
     fn test_expand_tilde_with_path() {
         // Arrange
         let home = env::var("HOME").unwrap();
@@ -147,6 +148,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // HOME env var not forwarded under Miri isolation
     fn test_expand_tilde_standalone() {
         // Arrange
         let home = env::var("HOME").unwrap();
@@ -177,6 +179,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // HOME env var not forwarded under Miri isolation
     fn test_home_dir_returns_path() {
         // Arrange & Act
         let result = home_dir();
@@ -186,6 +189,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses filesystem access unsupported under Miri isolation
     fn test_find_in_path_existing_binary() {
         // Arrange & Act
         let result = find_in_path("sh");
@@ -197,6 +201,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses filesystem access unsupported under Miri isolation
     fn test_find_in_path_nonexistent() {
         // Arrange & Act
         let result = find_in_path("nonexistent_binary_xyz_123");
@@ -206,6 +211,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_find_age_in_dirs_finds_binary() {
         // Arrange
         let dir = tempfile::TempDir::new().unwrap();
@@ -222,6 +228,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_find_age_in_dirs_skips_self() {
         // Arrange
         let dir = tempfile::TempDir::new().unwrap();
@@ -251,6 +258,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_find_age_in_dirs_no_match() {
         // Arrange
         let dir = tempfile::TempDir::new().unwrap();
@@ -264,6 +272,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_find_age_in_dirs_picks_first() {
         // Arrange
         let dir1 = tempfile::TempDir::new().unwrap();
@@ -283,6 +292,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // HOME env var not forwarded under Miri isolation
     fn test_expand_tilde_with_backslash() {
         // Arrange
         let home = env::var("HOME").unwrap();
@@ -296,6 +306,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // find_in_path uses filesystem access unsupported under Miri isolation
     fn test_find_in_path_returns_none_when_path_unset() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();

@@ -174,6 +174,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_single_identity() {
         // Arrange
         let f = write_toml(
@@ -195,6 +196,7 @@ identity = "/home/user/.config/chezmoi/key.gpg"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_multiple_identities() {
         // Arrange
         let f = write_toml(
@@ -212,6 +214,7 @@ identities = ["/path/a.gpg", "/path/b.asc"]
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_both_identity_and_identities() {
         // Arrange
         let f = write_toml(
@@ -230,6 +233,7 @@ identities = ["/path/sub.gpg"]
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_empty_age_section() {
         // Arrange
         let f = write_toml(
@@ -246,6 +250,7 @@ identities = ["/path/sub.gpg"]
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_no_age_section() {
         // Arrange
         let f = write_toml(
@@ -263,6 +268,7 @@ name = "test"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_invalid_toml() {
         // Arrange
         let f = write_toml("this is not valid toml {{{}}}");
@@ -279,6 +285,7 @@ name = "test"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_non_toml_extension() {
         // Arrange
         let mut f = tempfile::Builder::new().suffix(".yaml").tempfile().unwrap();
@@ -293,6 +300,7 @@ name = "test"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_config_tilde_expansion() {
         // Arrange
         let f = write_toml(
@@ -353,6 +361,7 @@ identity = "~/key.gpg"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_find_from_env_var() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -369,6 +378,7 @@ identity = "~/key.gpg"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses filesystem access unsupported under Miri isolation
     fn test_find_from_env_var_nonexistent() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -385,6 +395,7 @@ identity = "~/key.gpg"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_find_from_xdg_dir() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -405,6 +416,7 @@ identity = "~/key.gpg"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses filesystem access unsupported under Miri isolation
     fn test_find_returns_none_when_nothing_exists() {
         // Arrange
         let _lock = ENV_LOCK.lock().unwrap();
@@ -421,6 +433,7 @@ identity = "~/key.gpg"
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_identities_empty_string_identity() {
         // Arrange
         let f = write_toml(
@@ -438,6 +451,7 @@ identity = ""
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // uses tempfile I/O unsupported under Miri isolation
     fn test_read_identities_whitespace_only_identity() {
         // Arrange
         let f = write_toml(
