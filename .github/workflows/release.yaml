@@ -29,6 +29,8 @@ jobs:
     permissions:
       contents: read # Required to call another workflow
       actions: write # Required to upload artifacts
+      id-token: write # Required for build provenance attestation
+      attestations: write # Required for build provenance attestation
     with:
       tag: ${{ inputs.tag || github.ref_name }}
 

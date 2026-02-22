@@ -18,10 +18,6 @@ ARG CACHE_VERSION=0.8.3
 ARG MODULES_VERSION=v0.25.0
 ## renovate: datasource=github-releases packageName=mozilla/sccache versioning=semver automerge=true
 ARG SCCACHE_VERSION=v0.14.0
-## renovate: datasource=github-releases packageName=ziglang/zig versioning=semver automerge=true
-ARG ZIG_VERSION=0.15.1
-## renovate: datasource=github-releases packageName=rust-cross/cargo-zigbuild versioning=semver automerge=true
-ARG ZIGBUILD_VERSION=v0.22.0
 
 # retry dns and some http codes that might be transient errors
 ARG CURL_OPTS="-sfSL --retry 3 --retry-delay 2 --retry-connrefused"
@@ -37,8 +33,6 @@ ARG CACHE_VERSION \
 	MODULES_VERSION \
 	MOLD_VERSION \
 	SCCACHE_VERSION \
-	ZIG_VERSION \
-	ZIGBUILD_VERSION \
 	USER_NAME \
 	USER_UID \
 	USER_GID \
@@ -115,32 +109,6 @@ RUN echo "**** Rust tool sccache ****" && \
 	type -p sccache && \
 	rm -rf "./${_filename}" "${_tmpdir}"
 
-RUN echo "**** Rust tool zig ****" && \
-	set -euxo pipefail && \
-	_filename="zig-x86_64-linux-${ZIG_VERSION}.tar.xz" && \
-	_tmpdir=$(mktemp -q -d) && \
-	mkdir -p /usr/local/zig && \
-	curl ${CURL_OPTS} -H 'User-Agent: builder/1.0' -o "./${_filename}" \
-	"https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" && \
-	tar -xf "./${_filename}" --strip-components 1 -C "/usr/local/zig/" && \
-	ls -lah /usr/local/zig && \
-	rm -rf "./${_filename}" "${_tmpdir}"
-
-RUN echo "**** Rust tool cargo-zigbuild ****" && \
-	set -euxo pipefail && \
-	_release_data="$(curl ${CURL_OPTS} -H 'User-Agent: builder/1.0' \
-	https://api.github.com/repos/rust-cross/cargo-zigbuild/releases/tags/${ZIGBUILD_VERSION})" && \
-	_asset="$(echo "$_release_data" | jq -r '.assets[] | select(.name | endswith("x86_64-unknown-linux-musl.tar.xz"))')" && \
-	_download_url="$(echo "$_asset" | jq -r '.browser_download_url')" && \
-	_digest="$(echo "$_asset" | jq -r '.digest')" && \
-	_sha256="${_digest#sha256:}" && \
-	_filename="$(basename "$_download_url")" && \
-	curl ${CURL_OPTS} -H 'User-Agent: builder/1.0' -o "./${_filename}" "${_download_url}" && \
-	echo "${_sha256}  ${_filename}" | sha256sum -c - && \
-	tar -xvf "./${_filename}" --strip-components 1 -C /usr/local/bin/ && \
-	type -p cargo-zigbuild && \
-	rm -rf "./${_filename}"
-
 RUN --mount=type=bind,source=rust-toolchain.toml,target=/rust-toolchain.toml \
 	\
 	echo "**** Rust component ****" && \
@@ -154,12 +122,6 @@ ENV CARGO_HOME=/home/${USER_NAME}/.cargo
 RUN echo "**** Directory Create ****" && \
 	set -euxo pipefail && \
 	mkdir -p ~/.local ~/.config
-
-RUN echo "**** PATH add zig ****" && \
-	set -euxo pipefail && \
-	echo -e "# Add PATH ziglang\nexport PATH="/usr/local/zig:\$PATH"" >> ~/.bashrc && \
-	exec ${SHELL} -l && \
-	zig version
 
 RUN echo "**** Create ${CARGO_HOME} ****" && \
 	set -euxo pipefail && \

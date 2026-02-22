@@ -52,15 +52,15 @@ runs:
         echo "Found artifacts:"
         find ./artifacts -type f -name "*" | head -20
 
-        # Count expected vs actual artifacts (5 targets expected)
+        # Count expected vs actual artifacts (4 targets expected)
         artifact_count=$(find ./artifacts -type f \( -executable -o -name "*.exe" \) | wc -l)
         echo "Found ${artifact_count} binary artifacts"
 
         if [ "$artifact_count" -eq 0 ]; then
           echo "ERROR: No binary artifacts found"
           exit 1
-        elif [ "$artifact_count" -lt 5 ]; then
-          echo "WARNING: Expected 5 artifacts but found ${artifact_count}"
+        elif [ "$artifact_count" -lt 4 ]; then
+          echo "WARNING: Expected 4 artifacts but found ${artifact_count}"
         fi
 
     - name: Prepare release assets
@@ -78,7 +78,7 @@ runs:
           # Extract target from artifact directory name
           dir_name=$(basename "$(dirname "$file")")
           # Pattern: {binary_name}-{tag}-{target}
-          target=$(echo "$dir_name" | sed -E 's/.*-([a-zA-Z0-9_-]+)$/\1/')
+          target="${dir_name#*-${TAG}-}"
           binary_name=$(basename "$file")
 
           if [ -z "$target" ]; then
@@ -88,16 +88,23 @@ runs:
 
           echo "Target: $target, Binary: $binary_name"
 
+          # Stage binary + docs into a temp directory
+          staging_dir=$(mktemp -d)
+          cp "$file" "$staging_dir/"
+          cp README.md LICENSE "$staging_dir/"
+
           # Create compressed archive based on platform
           if [[ "$target" == *windows* ]]; then
             zip_name="${binary_name%.*}-${TAG}-${target}.zip"
             echo "Creating ZIP: $zip_name"
-            zip -j "release-assets/$zip_name" "$file"
+            (cd "$staging_dir" && zip "../release-assets/$zip_name" ./* )
           else
             tar_name="${binary_name}-${TAG}-${target}.tar.gz"
             echo "Creating TAR: $tar_name"
-            tar -czf "release-assets/$tar_name" -C "$(dirname "$file")" "$(basename "$file")"
+            tar -czf "release-assets/$tar_name" -C "$staging_dir" .
           fi
+
+          rm -rf "$staging_dir"
         done
 
         echo "Release assets created:"
@@ -108,6 +115,15 @@ runs:
           echo "ERROR: No release assets were created"
           exit 1
         fi
+
+    - name: Generate SHA256 checksums
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd release-assets
+        sha256sum * > SHA256SUMS
+        echo "SHA256 checksums:"
+        cat SHA256SUMS
 
     - name: Generate release notes
       shell: bash
@@ -167,8 +183,7 @@ runs:
 
         ### 🛠️ Build Information
 
-        - Built with: `cargo-zigbuild` + `sccache`
-        - Cross-compilation: Zig toolchain
+        - All targets: native `cargo auditable build` on per-platform runners
         - Optimization: Release profile with symbol stripping
 
         ---

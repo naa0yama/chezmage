@@ -375,8 +375,8 @@ mise run build:release   # release build
 # カバレッジ
 mise run coverage        # code coverage report
 
-# クロスコンパイル
-mise run zigbuild:all    # Tier 1 targets
+# ビルドチェック
+mise run build:release   # release build
 ```
 
 ### 5.2 品質基準
@@ -385,19 +385,38 @@ mise run zigbuild:all    # Tier 1 targets
 - **フォーマット違反禁止**
 - **カバレッジ目標**: 80%以上
 
-### 5.3 クロスコンパイル対応
+### 5.3 リリースビルド
 
-```bash
-# Tier 1 targets（全て対応）
-mise run zigbuild:all
-# - aarch64-apple-darwin    (Apple Silicon macOS)
-# - aarch64-unknown-linux-gnu (ARM64 Linux)
-# - x86_64-pc-windows-gnu   (Windows)
-# - x86_64-unknown-linux-gnu (Intel/AMD Linux)
+CI のリリースビルドは全ターゲットでネイティブランナーを使用する:
 
-# 個別ターゲット
-TARGET=x86_64-pc-windows-gnu mise run zigbuild
-```
+| Target                      | Runner             | Build 方法             |
+| --------------------------- | ------------------ | ---------------------- |
+| `x86_64-unknown-linux-gnu`  | `ubuntu-latest`    | `cargo build` (native) |
+| `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | `cargo build` (native) |
+| `aarch64-apple-darwin`      | `macos-latest`     | `cargo build` (native) |
+| `x86_64-pc-windows-msvc`    | `windows-latest`   | `cargo build` (native) |
+
+Windows ターゲットは `x86_64-pc-windows-msvc` (Tier 1、ネイティブ)。
+
+#### Local と CI のビルド構成
+
+全ターゲットでネイティブビルド(`cargo auditable build`)を使用する。
+Local と CI で共通のビルドパスを維持し、乖離を防ぐ。
+
+| ツール  | 用途                   | Local | CI                                   |
+| ------- | ---------------------- | ----- | ------------------------------------ |
+| sccache | rustc の透過キャッシュ | 使用  | 使用(出力同一、速度のみ改善)         |
+| mold    | 高速リンカー(Linux)    | 使用  | 不使用(`RUSTFLAGS` 上書きにより無効) |
+
+#### リリースアセット
+
+- 各アーカイブには `README.md` と `LICENSE` が同梱される
+- `SHA256SUMS` ファイルがリリースアセットに含まれる(全アーカイブの SHA256 チェックサム)
+- GitHub Artifact Attestations による SLSA Build Level 2 対応(各バイナリのビルド出自を暗号学的に証明)
+
+#### cargo binstall
+
+`cargo binstall chezmage` で GitHub Releases からビルド済みバイナリを直接インストール可能。
 
 ### 5.4 Git フック(`.githooks/` + `mise`)
 
@@ -682,7 +701,6 @@ otel = [...]  # OpenTelemetry 対応（コンテナ環境向け）
   - [tracing Documentation](https://docs.rs/tracing/) - 構造化ログ
   - [reqwest Documentation](https://docs.rs/reqwest/) - HTTP クライアント
   - [assert_cmd Documentation](https://docs.rs/assert_cmd/) - CLI テスト
-  - [cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild) - クロスコンパイル
   - [OpenTelemetry Rust](https://docs.rs/opentelemetry/) - 分散トレーシング
   - [tracing-opentelemetry](https://docs.rs/tracing-opentelemetry/) - tracing → OTel ブリッジ
 

@@ -1,5 +1,4 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
 	"name": "Rust(chezmage)",
 	"build": {
@@ -47,6 +46,7 @@
 				"xyz.local-history" // 					Local History
 			],
 			"settings": {
+				"window.title": "chezmage${separator}${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}",
 				"dprint.path": "/home/cuser/.local/share/mise/shims/dprint"
 			}
 		}

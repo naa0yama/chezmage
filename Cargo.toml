@@ -21,6 +21,17 @@ debug = 1 #			リリースビルドでもスタックトレース可能に
 lto = "thin"
 opt-level = "z"
 codegen-units = 1
+panic = "abort"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+disabled-strategies = ["quick-install"]
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.zip"
+pkg-fmt = "zip"
 
 [features]
 default = []

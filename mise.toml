@@ -101,19 +101,6 @@ run = "cargo deny check"
 description = "Run Miri to detect undefined behavior"
 run = "cargo +nightly miri test"
 
-[tasks.zigbuild]
-description = "Cross-compile for specific target"
-run = "cargo auditable zigbuild --release --target ${TARGET:-x86_64-unknown-linux-gnu} --verbose"
-
-[tasks."zigbuild:all"]
-description = "Cross-compile all Tier 1 targets"
-run = """
-cargo auditable zigbuild --release --target aarch64-apple-darwin
-cargo auditable zigbuild --release --target aarch64-unknown-linux-gnu
-cargo auditable zigbuild --release --target x86_64-pc-windows-gnu
-cargo auditable zigbuild --release --target x86_64-unknown-linux-gnu
-"""
-
 [tasks.pre-commit]
 description = "Pre-commit checks (fast)"
 depends = ["fmt:check", "clippy:strict", "ast-grep"]

@@ -25,25 +25,27 @@ env:
 jobs:
   build-matrix:
     name: build-${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     permissions:
       contents: read # Required to checkout the repository
       actions: write # Required to upload artifacts
+      id-token: write # Required for build provenance attestation
+      attestations: write # Required for build provenance attestation
     outputs:
       artifacts: ${{ steps.collect-artifacts.outputs.artifacts }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            os: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: x86_64-pc-windows-gnu
-            os: ubuntu-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -52,9 +54,8 @@ jobs:
 
       - name: Extract tool versions
         id: versions
+        shell: bash
         run: |
-          sccache_version=$(grep -E '^ARG SCCACHE_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG SCCACHE_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-          zigbuild_version=$(grep -E '^ARG ZIGBUILD_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG ZIGBUILD_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
           auditable_version=$(grep -E '"cargo:cargo-auditable"' mise.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
           package_name=$(grep -E '^\[package\]' -A 10 Cargo.toml | grep -E '^name = "' | sed -E 's/name = "(.*)"/\1/')
 
@@ -67,21 +68,12 @@ jobs:
 
           {
             echo "auditable=${auditable_version}"
-            echo "sccache=${sccache_version}"
-            echo "zigbuild=${zigbuild_version}"
             echo "package_name=${package_name}"
             echo "binary_name=${binary_name}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Rust setup
         uses: ./.github/actions/act-setup-rust
-        with:
-          sccache: ${{ steps.versions.outputs.sccache }}
-
-      - name: Install cargo-zigbuild
-        uses: taiki-e/install-action@288875dd3d64326724fa6d9593062d9f8ba0b131 # v2.67.30
-        with:
-          tool: cargo-zigbuild@${{ steps.versions.outputs.zigbuild }}
 
       - name: Install cargo-auditable
         uses: taiki-e/install-action@288875dd3d64326724fa6d9593062d9f8ba0b131 # v2.67.30
@@ -91,16 +83,16 @@ jobs:
       - name: Build release binary
         env:
           TARGET: ${{ matrix.target }}
+        shell: bash
         run: |
           set -euxo pipefail
-          # Disable mold for cross-compilation (zigbuild handles linking)
-          unset RUSTFLAGS
-          cargo auditable zigbuild --release --target "${TARGET}" --verbose
+          cargo auditable build --release --target "${TARGET}" --verbose
 
       - name: Set binary extension
         id: binary-ext
         env:
           TARGET: ${{ matrix.target }}
+        shell: bash
         run: |
           if [[ "${TARGET}" == *windows* ]]; then
             echo "ext=.exe" >> "$GITHUB_OUTPUT"
@@ -121,6 +113,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        env:
+          BINARY_NAME: ${{ steps.versions.outputs.binary_name }}
+          TARGET: ${{ matrix.target }}
+          BINARY_EXT: ${{ steps.binary-ext.outputs.ext }}
+        with:
+          subject-path: target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}${{ env.BINARY_EXT }}
+
       - name: Collect artifact info
         id: collect-artifacts
         env:
@@ -128,6 +129,7 @@ jobs:
           TAG: ${{ inputs.tag }}
           TARGET: ${{ matrix.target }}
           BINARY_EXT: ${{ steps.binary-ext.outputs.ext }}
+        shell: bash
         run: |
           artifact_name="${BINARY_NAME}-${TAG}-${TARGET}"
           binary_path="target/${TARGET}/release/${BINARY_NAME}${BINARY_EXT}"
