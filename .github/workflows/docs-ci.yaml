@@ -22,6 +22,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Cache dprint plugins
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.cache/dprint
+          key: dprint-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('dprint.jsonc') }}
+          restore-keys: |
+            dprint-v1-${{ runner.os }}-${{ runner.arch }}-
+
       - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
         with:
           install_args: dprint
