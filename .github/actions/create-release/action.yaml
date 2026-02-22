@@ -104,6 +104,8 @@ runs:
             echo "Creating ZIP: $zip_name"
             (cd "$staging_dir" && zip "${assets_dir}/$zip_name" ./* )
           else
+            # Restore executable bit lost by actions/download-artifact
+            chmod +x "$staging_dir/$binary_name"
             tar_name="${binary_name}-${TAG}-${target}.tar.gz"
             echo "Creating TAR: $tar_name"
             tar -czf "${assets_dir}/$tar_name" -C "$staging_dir" .

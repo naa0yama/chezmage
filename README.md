@@ -63,8 +63,41 @@ cargo build --features otel
 
 ## Install
 
+### mise (recommended)
+
+[mise](https://mise.jdx.dev/) を使用すると1コマンドでインストールできます:
+
 ```bash
-install -m 755 target/release/chezmage ~/.local/bin/
+mise use -g github:naa0yama/chezmage
+```
+
+バージョン指定:
+
+```bash
+mise use -g github:naa0yama/chezmage@0.1.3
+```
+
+### Pre-built binaries
+
+[GitHub Releases](https://github.com/naa0yama/chezmage/releases/latest) からダウンロード:
+
+| Platform | Architecture  | File                                                   |
+| -------- | ------------- | ------------------------------------------------------ |
+| Linux    | x86_64        | `chezmage-v{VERSION}-x86_64-unknown-linux-gnu.tar.gz`  |
+| Linux    | aarch64       | `chezmage-v{VERSION}-aarch64-unknown-linux-gnu.tar.gz` |
+| macOS    | Apple Silicon | `chezmage-v{VERSION}-aarch64-apple-darwin.tar.gz`      |
+| Windows  | x86_64        | `chezmage-v{VERSION}-x86_64-pc-windows-msvc.zip`       |
+
+```bash
+# Example: Linux x86_64
+curl -fsSL https://github.com/naa0yama/chezmage/releases/latest/download/chezmage-v{VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar xz
+install -m 755 chezmage ~/.local/bin/
+```
+
+### Build from source
+
+```bash
+cargo install --git https://github.com/naa0yama/chezmage.git
 ```
 
 ## Setup
@@ -72,11 +105,20 @@ install -m 755 target/release/chezmage ~/.local/bin/
 ### 1. Generate age key and encrypt with GPG
 
 ```bash
-age-keygen -o /tmp/age-key.txt
-# Public key: age1xxxx...
+# Create key storage directory
+mkdir -p ~/.config/chezmoi
 
-gpg -e -r YOUR_GPG_KEY_ID -o ~/.config/chezmoi/age-key.gpg /tmp/age-key.txt
-shred -u /tmp/age-key.txt
+# Generate age key pair
+age-keygen --output ~/.config/chezmoi/age-personal.key
+# Copy the output string "Public key: age1..."
+
+# Encrypt the generated private key with GPG (YubiKey)
+gpg --armor --encrypt --recipient "your-email@example.com" \
+  --output ~/.config/chezmoi/age-personal.asc \
+  ~/.config/chezmoi/age-personal.key
+
+# Securely delete the plaintext key
+shred -u ~/.config/chezmoi/age-personal.key
 ```
 
 ### 2. Configure chezmoi.toml
@@ -85,13 +127,15 @@ shred -u /tmp/age-key.txt
 encryption = "age"
 
 [age]
-identity = "~/.config/chezmoi/age-key.gpg"
 command = "chezmage"
 args = ["--shim"]
-recipient = "age1xxxx..."
+identities = [
+	"~/.config/chezmoi/age-personal.asc",
+]
+recipients = [
+	"age1xxxx...",
+]
 ```
-
-See [examples/dot_chezmoi.toml.tmpl](./examples/dot_chezmoi.toml.tmpl) for a full template.
 
 ### 3. Use
 

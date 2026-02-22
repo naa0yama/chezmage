@@ -3,14 +3,13 @@
 use std::process::Command;
 
 fn main() {
-    #[allow(clippy::expect_used)] // ビルドスクリプトでは必要
-    let output = Command::new("git")
+    let git_hash = Command::new("git")
         .args(["rev-parse", "--short", "HEAD"])
         .output()
-        .expect("Failed to retrieve Git commit hash.");
-    #[allow(clippy::expect_used)] // ビルドスクリプトでは必要
-    let git_hash =
-        String::from_utf8(output.stdout).expect("Failed to convert Git commit hash to string.");
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map_or_else(|| String::from("unknown"), |s| s.trim().to_owned());
 
-    println!("cargo:rustc-env=GIT_HASH={}", git_hash.trim());
+    println!("cargo:rustc-env=GIT_HASH={git_hash}");
 }

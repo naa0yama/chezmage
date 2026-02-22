@@ -40,10 +40,24 @@ use tracing_subscriber::util::SubscriberInitExt;
 /// Application version string including git revision.
 const APP_VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (rev:", env!("GIT_HASH"), ")",);
 
+/// Application about string shown in `--help`.
+const APP_ABOUT: &str = concat!(
+    env!("CARGO_PKG_DESCRIPTION"),
+    "\nversion ",
+    env!("CARGO_PKG_VERSION"),
+    " (rev:",
+    env!("GIT_HASH"),
+    ")",
+);
+
 /// chezmage CLI arguments.
 #[derive(Parser, Debug)]
-#[command(about, version = APP_VERSION)]
+#[command(about = APP_ABOUT, version = APP_VERSION)]
 struct Args {
+    /// Run in shim mode (pipe age key via stdin).
+    #[arg(long)]
+    shim: bool,
+
     /// Arguments passed through to chezmoi.
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     args: Vec<String>,
