@@ -1,9 +1,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(missing_docs)]
 
-use std::os::unix::fs::symlink;
-use std::path::PathBuf;
-
 use assert_cmd::cargo_bin_cmd;
 use predicates::prelude::predicate;
 use tempfile::TempDir;
@@ -191,80 +188,41 @@ fn test_cli_valid_key_attempts_chezmoi_exec() {
 // Phase 3B: Shim mode integration tests
 // -------------------------------------------------------------------------
 
-/// Create a symlink named `chezmage-shim` pointing to the cargo-built binary.
-fn create_shim_symlink() -> (TempDir, PathBuf) {
-    let dir = TempDir::new().unwrap();
-    let bin = cargo_bin_cmd!("chezmage").get_program().to_owned();
-    let shim_path = dir.path().join("chezmage-shim");
-    symlink(&bin, &shim_path).unwrap();
-    (dir, shim_path)
-}
-
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_shim_no_age_key_falls_back() {
-    // Arrange: no CHEZMOI_AGE_KEY, no age in PATH
-    let (_dir, shim) = create_shim_symlink();
-
-    // Act & Assert: should try to find and exec age directly
-    let output = std::process::Command::new(&shim)
+    // Arrange & Act & Assert: no CHEZMOI_AGE_KEY, no age in PATH
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.arg("--shim")
         .env_remove("CHEZMOI_AGE_KEY")
         .env("PATH", "/tmp/chezmage-test-nonexistent")
-        .output()
-        .unwrap();
-
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let combined = format!("{stderr}{stdout}");
-    assert!(
-        combined.contains("age binary not found"),
-        "should fail finding age: {combined}"
-    );
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("age binary not found"));
 }
 
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_shim_with_key_no_identity_flag_falls_back() {
-    // Arrange: CHEZMOI_AGE_KEY is set but no -i flag → should fallback to direct exec
-    let (_dir, shim) = create_shim_symlink();
-
-    let output = std::process::Command::new(&shim)
-        .args(["-e", "somefile.txt"])
+    // Arrange & Act & Assert: CHEZMOI_AGE_KEY is set but no -i flag → should fallback
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.args(["--shim", "-e", "somefile.txt"])
         .env("CHEZMOI_AGE_KEY", "AGE-SECRET-KEY-1FAKEKEY")
         .env("PATH", "/tmp/chezmage-test-nonexistent")
-        .output()
-        .unwrap();
-
-    // Assert: should try to exec real age and fail
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let combined = format!("{stderr}{stdout}");
-    assert!(
-        combined.contains("age binary not found"),
-        "should fail finding age: {combined}"
-    );
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("age binary not found"));
 }
 
 #[test]
 #[cfg_attr(miri, ignore)]
-fn test_shim_argv0_detection() {
-    // Arrange: symlink with chezmage-shim name triggers shim mode
-    let (_dir, shim) = create_shim_symlink();
-
-    // Act: run with --version — in shim mode this is passed to age, not clap
-    let output = std::process::Command::new(&shim)
-        .arg("--version")
+fn test_shim_flag_detection() {
+    // Arrange & Act & Assert: --shim triggers shim mode, --version is passed to age
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.args(["--shim", "--version"])
         .env_remove("CHEZMOI_AGE_KEY")
         .env("PATH", "/tmp/chezmage-test-nonexistent")
-        .output()
-        .unwrap();
-
-    // Assert: shim mode tries to find age binary (not chezmoi)
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let combined = format!("{stderr}{stdout}");
-    assert!(
-        combined.contains("age binary not found"),
-        "shim mode should look for age, not chezmoi: {combined}"
-    );
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("age binary not found"));
 }

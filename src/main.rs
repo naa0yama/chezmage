@@ -1,14 +1,14 @@
 //! chezmage — chezmoi + memory + age: GPG-backed age encryption wrapper.
 //!
-//! Single binary + 1 symlink for protecting age secret keys with GPG (`YubiKey`).
+//! Single binary for protecting age secret keys with GPG (`YubiKey`).
 //! Keys never touch disk — they exist only in process memory (env var).
 //!
 //! ## Modes
 //!
 //! - `chezmage <args>` — **Wrapper**: reads chezmoi.toml, decrypts GPG
 //!   identities, sets env var, execs chezmoi
-//! - `chezmage-shim <args>` (symlink) — **Shim**: pipes env var key to the
-//!   real `age` binary via stdin
+//! - `chezmage --shim <args>` — **Shim**: pipes env var key to the real
+//!   `age` binary via stdin
 
 /// Chezmoi configuration parsing.
 pub mod config;
@@ -27,7 +27,6 @@ pub mod wrapper;
 pub(crate) mod test_utils;
 
 use std::env;
-use std::path::Path;
 
 use clap::Parser;
 use tracing_subscriber::filter::EnvFilter;
@@ -55,20 +54,19 @@ fn main() {
 
     init_tracing();
 
-    let argv0 = env::args().next().unwrap_or_default();
-    let bin_name = Path::new(&argv0)
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("");
+    let raw_args: Vec<String> = env::args().skip(1).collect();
 
-    if bin_name.contains("chezmage-shim") {
-        if let Err(e) = shim::run() {
+    if let Some(pos) = raw_args.iter().position(|a| a == "--shim") {
+        // Shim mode: strip --shim, pass remaining args to age pipe
+        let mut shim_args = raw_args;
+        shim_args.remove(pos);
+        if let Err(e) = shim::run(&shim_args) {
             tracing::error!("{e:#}");
             #[allow(clippy::exit)]
             std::process::exit(1);
         }
     } else {
-        // Parse args to handle --help / --version via clap
+        // Wrapper mode: handle --help/--version via clap, then exec chezmoi
         let _args = Args::parse();
 
         if let Err(e) = wrapper::run() {

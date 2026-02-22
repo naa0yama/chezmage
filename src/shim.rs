@@ -1,6 +1,5 @@
 //! Shim mode: pipe age key from env var to the real `age` binary via stdin.
 
-use std::env;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
@@ -17,22 +16,20 @@ use crate::exec::{ENV_AGE_KEY, find_real_age, replace_process};
 /// # Errors
 ///
 /// Returns an error if the real `age` binary cannot be found or spawned.
-pub fn run() -> Result<()> {
-    let args: Vec<String> = env::args().skip(1).collect();
-
-    let age_key = env::var(ENV_AGE_KEY).ok().filter(|k| !k.is_empty());
+pub fn run(args: &[String]) -> Result<()> {
+    let age_key = std::env::var(ENV_AGE_KEY).ok().filter(|k| !k.is_empty());
 
     let Some(age_key) = age_key else {
         let age = find_real_age()?;
-        let err = replace_process(&age, &args);
+        let err = replace_process(&age, args);
         bail!("failed to exec age: {err}");
     };
 
-    let (has_identity, new_args) = rewrite_identity_args(&args);
+    let (has_identity, new_args) = rewrite_identity_args(args);
 
     if !has_identity {
         let age = find_real_age()?;
-        let err = replace_process(&age, &args);
+        let err = replace_process(&age, args);
         bail!("failed to exec age: {err}");
     }
 

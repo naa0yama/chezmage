@@ -4,7 +4,7 @@ chezmoi + age encryption with **GPG (YubiKey) protected age secret keys that nev
 
 ## Features
 
-- **Single binary + 1 symlink** — no shell scripts needed
+- **Single binary** — no symlinks or shell scripts needed
 - **Auto-reads chezmoi.toml** — discovers `identity` / `identities` key paths
 - **Multiple key support** — GPG encrypted / plaintext / mixed
 - **Zero disk writes** — keys exist only in process memory (env var)
@@ -29,9 +29,9 @@ chezmage apply                    ← Wrapper mode
        │
        └─ exec chezmoi apply
               │
-              ├─ file1.age → chezmage-shim (symlink)
+              ├─ file1.age → chezmage --shim
               │    └─ echo $CHEZMOI_AGE_KEY | age -d -i - file1.age
-              ├─ file2.age → chezmage-shim
+              ├─ file2.age → chezmage --shim
               └─ ...
               GPG calls: once per key file
               YubiKey touch: once within gpg-agent cache
@@ -65,7 +65,6 @@ cargo build --features otel
 
 ```bash
 install -m 755 target/release/chezmage ~/.local/bin/
-ln -s chezmage ~/.local/bin/chezmage-shim
 ```
 
 ## Setup
@@ -87,7 +86,8 @@ encryption = "age"
 
 [age]
 identity = "~/.config/chezmoi/age-key.gpg"
-command = "~/.local/bin/chezmage-shim"
+command = "chezmage"
+args = ["--shim"]
 recipient = "age1xxxx..."
 ```
 

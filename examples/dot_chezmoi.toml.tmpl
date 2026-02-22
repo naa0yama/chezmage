@@ -7,10 +7,11 @@ encryption = "age"
 
 [age]
 {{- if eq .chezmoi.os "linux" }}
-  command = "{{ .chezmoi.homeDir }}/.local/bin/chezmage-shim"
+  command = "{{ .chezmoi.homeDir }}/.local/bin/chezmage"
 {{- else if eq .chezmoi.os "windows" }}
-  command = '{{ .chezmoi.homeDir }}\.local\bin\chezmage-shim.exe'
+  command = '{{ .chezmoi.homeDir }}\.local\bin\chezmage.exe'
 {{- end }}
+  args = ["--shim"]
   # Single key:
   # identity = "{{ .chezmoi.homeDir }}/.config/chezmoi/age-key.gpg"
 
