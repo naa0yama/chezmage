@@ -71,6 +71,8 @@ jobs:
     permissions:
       contents: write # Required to create releases and tags
       actions: write # Required for build job to upload artifacts
+      id-token: write # Required for build provenance attestation
+      attestations: write # Required for build provenance attestation
     uses: ./.github/workflows/release.yaml
     with:
       tag: ${{ needs.tagpr.outputs.tag }}
