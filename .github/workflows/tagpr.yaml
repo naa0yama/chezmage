@@ -46,6 +46,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Add CI note to release PR
+        if: steps.tagpr.outputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh pr list --state open --json number,headRefName \
+            --jq '[.[] | select(.headRefName | startswith("tagpr-from-"))][0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No tagpr release PR found, skipping"
+            exit 0
+          fi
+          MARKER="<!-- tagpr-ci-note -->"
+          if gh pr view "$PR_NUMBER" --json comments \
+              --jq '.comments[].body' | grep -qF "$MARKER"; then
+            echo "CI note comment already exists on PR #${PR_NUMBER}, skipping"
+            exit 0
+          fi
+          gh pr comment "$PR_NUMBER" --body "${MARKER}
+          > [!TIP]
+          > この Pull Request は \`GITHUB_TOKEN\` で作成されているため、CI が自動で起動しません。
+          > Pull Request を一度 \`Close pull request\` して \`Reopen pull request\` すると CI が起動します。"
+
       - name: Format CHANGELOG.md
         if: steps.tagpr.outputs.tag == ''
         env:
