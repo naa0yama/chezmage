@@ -70,6 +70,7 @@ runs:
       run: |
         set -euxo pipefail
         mkdir -p release-assets
+        assets_dir="$(pwd)/release-assets"
 
         # Process binary artifacts
         find ./artifacts -type f \( -executable -o -name "*.exe" \) | while read -r file; do
@@ -97,11 +98,11 @@ runs:
           if [[ "$target" == *windows* ]]; then
             zip_name="${binary_name%.*}-${TAG}-${target}.zip"
             echo "Creating ZIP: $zip_name"
-            (cd "$staging_dir" && zip "../release-assets/$zip_name" ./* )
+            (cd "$staging_dir" && zip "${assets_dir}/$zip_name" ./* )
           else
             tar_name="${binary_name}-${TAG}-${target}.tar.gz"
             echo "Creating TAR: $tar_name"
-            tar -czf "release-assets/$tar_name" -C "$staging_dir" .
+            tar -czf "${assets_dir}/$tar_name" -C "$staging_dir" .
           fi
 
           rm -rf "$staging_dir"
