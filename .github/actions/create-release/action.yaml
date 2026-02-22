@@ -53,7 +53,9 @@ runs:
         find ./artifacts -type f -name "*" | head -20
 
         # Count expected vs actual artifacts (4 targets expected)
-        artifact_count=$(find ./artifacts -type f \( -executable -o -name "*.exe" \) | wc -l)
+        # Note: actions/download-artifact does not preserve the executable bit,
+        # so we count all files instead of relying on -executable.
+        artifact_count=$(find ./artifacts -type f | wc -l)
         echo "Found ${artifact_count} binary artifacts"
 
         if [ "$artifact_count" -eq 0 ]; then
@@ -73,7 +75,9 @@ runs:
         assets_dir="$(pwd)/release-assets"
 
         # Process binary artifacts
-        find ./artifacts -type f \( -executable -o -name "*.exe" \) | while read -r file; do
+        # Note: actions/download-artifact does not preserve the executable bit,
+        # so we find all files instead of relying on -executable.
+        find ./artifacts -type f | while read -r file; do
           echo "Processing: $file"
 
           # Extract target from artifact directory name
@@ -221,9 +225,9 @@ runs:
         echo "📦 Assets uploaded: $(ls -1 release-assets/ | wc -l)"
         printf "🔗 Release URL: %s\n" "${RELEASE_URL}"
 
-        echo "## 📋 Release Summary" >> $GITHUB_STEP_SUMMARY
-        printf "- **Tag**: %s\n" "${TAG}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Assets**: $(ls -1 release-assets/ | wc -l)" >> $GITHUB_STEP_SUMMARY
-        printf "- **Release URL**: %s\n" "${RELEASE_URL}" >> $GITHUB_STEP_SUMMARY
-        printf "- **Draft**: %s\n" "${DRAFT}" >> $GITHUB_STEP_SUMMARY
-        printf "- **Prerelease**: %s\n" "${PRERELEASE}" >> $GITHUB_STEP_SUMMARY
+        echo "## 📋 Release Summary" >> "$GITHUB_STEP_SUMMARY"
+        printf -- "- **Tag**: %s\n" "${TAG}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- **Assets**: $(ls -1 release-assets/ | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+        printf -- "- **Release URL**: %s\n" "${RELEASE_URL}" >> "$GITHUB_STEP_SUMMARY"
+        printf -- "- **Draft**: %s\n" "${DRAFT}" >> "$GITHUB_STEP_SUMMARY"
+        printf -- "- **Prerelease**: %s\n" "${PRERELEASE}" >> "$GITHUB_STEP_SUMMARY"
