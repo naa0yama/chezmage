@@ -34,7 +34,8 @@ pub(crate) fn parse_gpg_bytes(
 
 /// Decrypt a GPG-encrypted file, returning its content as a string.
 ///
-/// Inherits stdin and stderr so gpg-agent can prompt for a PIN (e.g. `YubiKey`).
+/// Inherits stdin so gpg-agent can interact with pinentry for PIN prompts.
+/// GPG stderr is captured and logged (debug on success, warn on failure).
 ///
 /// # Errors
 ///
@@ -45,9 +46,18 @@ pub fn decrypt(path: &Path) -> Result<String> {
         .args(["--quiet", "--yes", "--decrypt"])
         .arg(path)
         .stdin(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stderr(Stdio::piped())
         .output()
         .with_context(|| format!("failed to run gpg for {}", path.display()))?;
+
+    if !output.stderr.is_empty() {
+        let stderr_text = String::from_utf8_lossy(&output.stderr);
+        if output.status.success() {
+            tracing::debug!(path = %path.display(), stderr = %stderr_text.trim_end(), "gpg stderr");
+        } else {
+            tracing::warn!(path = %path.display(), stderr = %stderr_text.trim_end(), "gpg stderr");
+        }
+    }
 
     parse_gpg_bytes(
         output.status.success(),
