@@ -13,7 +13,8 @@ use crate::secure::SecureString;
 
 /// Chezmoi subcommands that never need age decryption.
 ///
-/// These commands deal only with metadata, config, or shell operations
+/// These commands deal only with metadata, config, shell operations,
+/// or write-only encryption (using the age public key / recipient),
 /// and never read encrypted file content.  Unknown subcommands always
 /// trigger decryption as a safe default.
 ///
@@ -23,6 +24,7 @@ use crate::secure::SecureString;
 ///   metadata (paths / attributes), never calling `Contents()` which
 ///   would trigger lazy `AgeEncryption.Decrypt()`.
 const PASSTHROUGH_SUBCOMMANDS: &[&str] = &[
+    "add",
     "age-keygen",
     "cat-config",
     "cd",
@@ -33,6 +35,7 @@ const PASSTHROUGH_SUBCOMMANDS: &[&str] = &[
     "dump-config",
     "edit-config",
     "edit-config-template",
+    "encrypt",
     "execute-template",
     "forget",
     "generate",
@@ -42,6 +45,7 @@ const PASSTHROUGH_SUBCOMMANDS: &[&str] = &[
     "license",
     "managed",
     "purge",
+    "re-add",
     "secret",
     "source-path",
     "state",
@@ -600,6 +604,7 @@ mod tests {
     fn test_needs_decryption_all_passthrough_subcommands() {
         // Arrange
         let all = [
+            "add",
             "age-keygen",
             "cat-config",
             "cd",
@@ -610,6 +615,7 @@ mod tests {
             "dump-config",
             "edit-config",
             "edit-config-template",
+            "encrypt",
             "execute-template",
             "forget",
             "generate",
@@ -619,6 +625,7 @@ mod tests {
             "license",
             "managed",
             "purge",
+            "re-add",
             "secret",
             "source-path",
             "state",
@@ -634,6 +641,30 @@ mod tests {
                 "{cmd} should be passthrough"
             );
         }
+    }
+
+    #[test]
+    fn test_needs_decryption_add() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["add"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_add_encrypt() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["add", "--encrypt"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_re_add() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["re-add"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_encrypt() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["encrypt"])));
     }
 
     // -----------------------------------------------------------------
@@ -832,7 +863,6 @@ mod tests {
     fn test_needs_decryption_commands_requiring_decryption() {
         // Arrange
         let all = [
-            "add",
             "age",
             "apply",
             "archive",
@@ -844,12 +874,10 @@ mod tests {
             "dump",
             "edit",
             "edit-encrypted",
-            "encrypt",
             "import",
             "init",
             "merge",
             "merge-all",
-            "re-add",
             "ssh",
             "status",
             "update",
