@@ -2,6 +2,10 @@
 
 chezmoi + age encryption with **GPG (YubiKey) protected age secret keys that never touch disk**. A single Rust binary.
 
+> **chezmage** `/ʃeɪ meɪdʒ/` (shay-mage) — a portmanteau of [chezmoi](https://www.chezmoi.io/) and [age](https://age-encryption.org/).
+>
+> The name also evokes "mage" (wizard): your secret keys materialize in memory for a single invocation, then vanish without a trace — as if by magic.
+
 ## Features
 
 - **Single binary** — no symlinks or shell scripts needed
