@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.2.2](https://github.com/naa0yama/chezmage/compare/v0.2.1...v0.2.2) - 2026-02-23
+### Documentation 🗒️
+- update: README.md by @naa0yama in https://github.com/naa0yama/chezmage/pull/27
+
 ## [v0.2.1](https://github.com/naa0yama/chezmage/compare/v0.2.0...v0.2.1) - 2026-02-23
 
 ## [v0.2.0](https://github.com/naa0yama/chezmage/compare/v0.1.8...v0.2.0) - 2026-02-23
