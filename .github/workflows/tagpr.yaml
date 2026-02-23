@@ -8,6 +8,7 @@ on:
     types: [labeled, unlabeled]
     branches:
       - main
+  workflow_dispatch: {}
 
 permissions: {}
 
