@@ -1,5 +1,6 @@
 //! Shim mode: deliver age key from env var to the real `age` binary via pipe fd.
 
+#[cfg(unix)]
 use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, RawFd};
@@ -46,7 +47,13 @@ pub fn run(args: &[String]) -> Result<()> {
         bail!("failed to exec age: {err}");
     };
 
-    let pipe = create_key_pipe(&age_key).context("failed to create key pipe")?;
+    deliver_key_via_pipe(&age_key, args)
+}
+
+/// Deliver the age key to the real `age` binary via a Unix pipe fd.
+#[cfg(unix)]
+fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
+    let pipe = create_key_pipe(age_key).context("failed to create key pipe")?;
     let identity_source = format!("/dev/fd/{}", pipe.as_raw_fd());
 
     let (has_identity, new_args) = rewrite_identity_args(args, &identity_source);
@@ -71,6 +78,12 @@ pub fn run(args: &[String]) -> Result<()> {
 
     #[allow(clippy::exit)]
     std::process::exit(status.code().unwrap_or(1));
+}
+
+/// Pipe-based key delivery is not supported on non-Unix platforms.
+#[cfg(not(unix))]
+fn deliver_key_via_pipe(_age_key: &str, _args: &[String]) -> Result<()> {
+    bail!("pipe-based key delivery requires Unix (Linux/macOS)");
 }
 
 /// Create an OS pipe, write the age key to the write end, close it,
