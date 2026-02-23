@@ -73,7 +73,7 @@ pub fn run() -> Result<()> {
     if !needs_decryption(&args) {
         tracing::debug!(
             subcommand = ?extract_subcommand(&args),
-            "passthrough: skipping GPG decryption",
+            "skipping GPG decryption",
         );
         exec_chezmoi(&args)?;
     }
@@ -136,12 +136,77 @@ fn extract_subcommand(args: &[String]) -> Option<&str> {
         .map(String::as_str)
 }
 
+/// Check whether `--exclude`/`-x` flags exclude `encrypted` entries.
+///
+/// Scans arguments left-to-right, tracking whether `encrypted` is currently
+/// excluded.  Later flags override earlier ones (matching chezmoi semantics).
+/// Returns `false` (safe default: do decrypt) for ambiguous or empty input.
+fn excludes_encrypted(args: &[String]) -> bool {
+    let mut excluded = false;
+    let mut skip_next = false;
+
+    for (i, arg) in args.iter().enumerate() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+
+        // Determine flag kind and its value(s)
+        let (is_exclude, values) = if let Some(val) = arg.strip_prefix("--exclude=") {
+            (true, val)
+        } else if let Some(val) = arg.strip_prefix("--include=") {
+            (false, val)
+        } else if let Some(val) = arg.strip_prefix("-x=") {
+            (true, val)
+        } else if let Some(val) = arg.strip_prefix("-i=") {
+            (false, val)
+        } else if arg == "--exclude" || arg == "-x" {
+            match i.checked_add(1).and_then(|j| args.get(j)) {
+                Some(next) if !next.starts_with('-') => {
+                    skip_next = true;
+                    (true, next.as_str())
+                }
+                _ => continue, // missing value — skip
+            }
+        } else if arg == "--include" || arg == "-i" {
+            match i.checked_add(1).and_then(|j| args.get(j)) {
+                Some(next) if !next.starts_with('-') => {
+                    skip_next = true;
+                    (false, next.as_str())
+                }
+                _ => continue,
+            }
+        } else {
+            continue;
+        };
+
+        // Parse comma-separated entry types
+        for entry in values.split(',') {
+            let entry = entry.trim();
+            match (is_exclude, entry) {
+                (true, "encrypted" | "all") | (false, "none" | "noencrypted") => excluded = true,
+                (true, "none" | "noencrypted") | (false, "encrypted" | "all") => excluded = false,
+                _ => {}
+            }
+        }
+    }
+
+    excluded
+}
+
 /// Check whether the given arguments require age key decryption.
 ///
 /// Returns `false` for known passthrough subcommands that never read
-/// encrypted content.  Returns `true` for everything else (safe default).
+/// encrypted content, or when `--exclude encrypted` is specified.
+/// Returns `true` for everything else (safe default).
 fn needs_decryption(args: &[String]) -> bool {
-    extract_subcommand(args).is_none_or(|cmd| !PASSTHROUGH_SUBCOMMANDS.contains(&cmd))
+    if extract_subcommand(args).is_some_and(|cmd| PASSTHROUGH_SUBCOMMANDS.contains(&cmd)) {
+        return false;
+    }
+    if excludes_encrypted(args) {
+        return false;
+    }
+    true
 }
 
 /// Collect identity file paths in priority order:
@@ -569,6 +634,198 @@ mod tests {
                 "{cmd} should be passthrough"
             );
         }
+    }
+
+    // -----------------------------------------------------------------
+    // excludes_encrypted
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn test_excludes_encrypted_long_space() {
+        // Arrange & Act & Assert
+        assert!(excludes_encrypted(&args(&["--exclude", "encrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_long_equals() {
+        // Arrange & Act & Assert
+        assert!(excludes_encrypted(&args(&["--exclude=encrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_short_space() {
+        // Arrange & Act & Assert
+        assert!(excludes_encrypted(&args(&["-x", "encrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_short_equals() {
+        // Arrange & Act & Assert
+        assert!(excludes_encrypted(&args(&["-x=encrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_comma_separated() {
+        // Arrange & Act & Assert
+        assert!(excludes_encrypted(&args(&["--exclude", "dirs,encrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_comma_without_encrypted() {
+        // Arrange & Act & Assert
+        assert!(!excludes_encrypted(&args(&["--exclude", "dirs,files"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_all_keyword() {
+        // Arrange & Act & Assert
+        assert!(excludes_encrypted(&args(&["--exclude", "all"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_none_keyword() {
+        // Arrange & Act & Assert
+        assert!(!excludes_encrypted(&args(&["--exclude", "none"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_noencrypted_in_exclude() {
+        // --exclude noencrypted means "don't exclude encrypted" -> false
+        assert!(!excludes_encrypted(&args(&["--exclude", "noencrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_include_re_enables() {
+        // --exclude encrypted then --include encrypted -> not excluded
+        assert!(!excludes_encrypted(&args(&[
+            "--exclude",
+            "encrypted",
+            "--include",
+            "encrypted",
+        ])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_include_all_re_enables() {
+        // --exclude encrypted then --include all -> not excluded
+        assert!(!excludes_encrypted(&args(&[
+            "--exclude",
+            "encrypted",
+            "--include",
+            "all",
+        ])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_include_none_excludes() {
+        // --include none -> same as exclude all
+        assert!(excludes_encrypted(&args(&["-i", "none"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_include_noencrypted() {
+        // --include noencrypted means "include the negation" -> excluded
+        assert!(excludes_encrypted(&args(&["-i", "noencrypted"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_empty_args() {
+        // Arrange & Act & Assert
+        assert!(!excludes_encrypted(&args(&[])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_unrelated_flags() {
+        // Arrange & Act & Assert
+        assert!(!excludes_encrypted(&args(&[
+            "--verbose",
+            "--color",
+            "false",
+            "apply",
+        ])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_exclude_dirs_only() {
+        // Arrange & Act & Assert
+        assert!(!excludes_encrypted(&args(&["--exclude", "dirs"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_missing_value() {
+        // --exclude with no value should not panic and return false
+        assert!(!excludes_encrypted(&args(&["--exclude"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_missing_value_at_end_with_flag_next() {
+        // --exclude followed by another flag — should skip
+        assert!(!excludes_encrypted(&args(&["--exclude", "--verbose"])));
+    }
+
+    #[test]
+    fn test_excludes_encrypted_last_flag_wins() {
+        // --include encrypted then --exclude encrypted -> excluded
+        assert!(excludes_encrypted(&args(&[
+            "--include",
+            "encrypted",
+            "--exclude",
+            "encrypted",
+        ])));
+    }
+
+    // -----------------------------------------------------------------
+    // needs_decryption + --exclude
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn test_needs_decryption_exclude_encrypted() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&[
+            "status",
+            "--exclude",
+            "encrypted",
+        ])));
+    }
+
+    #[test]
+    fn test_needs_decryption_exclude_dirs_still_needs() {
+        // Arrange & Act & Assert
+        assert!(needs_decryption(&args(&["status", "--exclude", "dirs"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_exclude_encrypted_short() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["apply", "-x=encrypted",])));
+    }
+
+    #[test]
+    fn test_needs_decryption_passthrough_with_exclude() {
+        // passthrough subcommand still skips regardless of exclude flag
+        assert!(!needs_decryption(&args(&[
+            "doctor",
+            "--exclude",
+            "encrypted",
+        ])));
+    }
+
+    #[test]
+    fn test_needs_decryption_exclude_then_include_needs() {
+        // --exclude encrypted then --include encrypted -> needs decryption
+        assert!(needs_decryption(&args(&[
+            "apply",
+            "--exclude",
+            "encrypted",
+            "--include",
+            "encrypted",
+        ])));
+    }
+
+    #[test]
+    fn test_needs_decryption_exclude_all() {
+        // --exclude all -> excludes encrypted -> no decryption needed
+        assert!(!needs_decryption(&args(&["diff", "-x", "all"])));
     }
 
     #[test]
