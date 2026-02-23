@@ -66,7 +66,14 @@ jobs:
           gh pr comment "$PR_NUMBER" --body "${MARKER}
           > [!TIP]
           > この Pull Request は \`GITHUB_TOKEN\` で作成されているため、CI が自動で起動しません。
-          > Pull Request を一度 \`Close pull request\` して \`Reopen pull request\` すると CI が起動します。"
+          > Pull Request を一度 \`Close pull request\` して \`Reopen pull request\` すると CI が起動します。
+
+          > [!NOTE]
+          > バージョンバンプはデフォルトで **patch** です。変更したい場合はこの PR に以下のラベルを付けてください:
+          > | Label | Bump | Example |
+          > |-------|------|---------|
+          > | \`minor\` | minor | \`0.1.4\` → \`0.2.0\` |
+          > | \`major\` | major | \`0.1.4\` → \`1.0.0\` |"
 
       - name: Format CHANGELOG.md
         if: steps.tagpr.outputs.tag == ''
