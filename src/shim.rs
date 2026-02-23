@@ -4,9 +4,12 @@
 use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, RawFd};
+#[cfg(unix)]
 use std::process::{Command, Stdio};
 
-use anyhow::{Context, Result, bail};
+#[cfg(unix)]
+use anyhow::Context;
+use anyhow::{Result, bail};
 
 use crate::exec::{ENV_AGE_KEY, find_real_age, replace_process};
 
