@@ -15,6 +15,19 @@ chezmoi + age encryption with **GPG (YubiKey) protected age secret keys that nev
 - **Security hardened** — mlock, zeroize, core dump disable, ptrace block
 - **Cross-platform** — Linux / Windows
 
+## Modes
+
+chezmage operates in two modes from a single binary:
+
+| Mode    | Invocation                   | Purpose                                                  |
+| ------- | ---------------------------- | -------------------------------------------------------- |
+| Wrapper | `chezmage <args>`            | Decrypt GPG keys, set env var, then exec `chezmoi`       |
+| Shim    | `chezmage --shim <age-args>` | Feed the in-memory key to `age` via a pipe (no disk I/O) |
+
+**Wrapper mode** is the user-facing entry point. It reads `chezmoi.toml`, decrypts GPG-encrypted identity files (triggering a single YubiKey touch), loads the age secret keys into memory, and execs the real `chezmoi` binary.
+
+**Shim mode** is called by chezmoi internally. When chezmoi needs to decrypt an `.age` file, it invokes the `command` configured in `[age]` — which is `chezmage --shim`. The shim reads the key from the `CHEZMOI_AGE_KEY` env var (set by wrapper mode), writes it to a pipe, and execs the real `age` binary with the pipe as the identity source. This avoids writing keys to disk.
+
 ## How it works
 
 ```
@@ -69,13 +82,13 @@ cargo build --features otel
 
 ### mise (recommended)
 
-[mise](https://mise.jdx.dev/) を使用すると1コマンドでインストールできます:
+Install with a single command using [mise](https://mise.jdx.dev/):
 
 ```bash
 mise use -g github:naa0yama/chezmage
 ```
 
-バージョン指定:
+Pin a specific version:
 
 ```bash
 mise use -g github:naa0yama/chezmage@0.1.3
@@ -83,7 +96,7 @@ mise use -g github:naa0yama/chezmage@0.1.3
 
 ### Pre-built binaries
 
-[GitHub Releases](https://github.com/naa0yama/chezmage/releases/latest) からダウンロード:
+Download from [GitHub Releases](https://github.com/naa0yama/chezmage/releases/latest):
 
 | Platform | Architecture  | File                                                   |
 | -------- | ------------- | ------------------------------------------------------ |
@@ -151,6 +164,25 @@ chezmage add --encrypt ~/.ssh/config
 # Recommended alias
 alias chezmoi='chezmage'
 ```
+
+## Smart GPG decryption skip
+
+chezmage skips GPG decryption (and YubiKey touch) when it is not needed:
+
+**Passthrough subcommands** — metadata-only commands that never read encrypted content skip decryption entirely:
+
+`age-keygen`, `cat-config`, `cd`, `chattr`, `completion`, `data`, `doctor`, `dump-config`, `edit-config`, `edit-config-template`, `execute-template`, `forget`, `generate`, `git`, `help`, `ignored`, `license`, `managed`, `purge`, `secret`, `source-path`, `state`, `target-path`, `unmanaged`, `upgrade`
+
+**`--exclude encrypted`** — when you explicitly exclude encrypted entries, chezmoi will not decrypt any files, so chezmage skips GPG decryption as well:
+
+```bash
+# No YubiKey touch required — encrypted files are excluded
+chezmage status --exclude encrypted
+chezmage apply -x encrypted
+chezmage diff --exclude=dirs,encrypted
+```
+
+The `--include` flag (`-i`) can re-enable encrypted entries. chezmage evaluates flags left-to-right with the last flag winning, matching chezmoi semantics. Unknown or ambiguous flags always fall back to decryption (safe default).
 
 ## Identity discovery priority
 
