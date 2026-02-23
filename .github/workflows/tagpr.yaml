@@ -80,8 +80,8 @@ jobs:
           > バージョンバンプはデフォルトで **patch** です。変更したい場合はこの PR に以下のラベルを付けてください:
           > | Label | Bump | Example |
           > |-------|------|---------|
-          > | \`minor\` | minor | \`0.1.4\` → \`0.2.0\` |
-          > | \`major\` | major | \`0.1.4\` → \`1.0.0\` |"
+          > | \`tagpr:minor\` | minor | \`0.1.4\` → \`0.2.0\` |
+          > | \`tagpr:major\` | major | \`0.1.4\` → \`1.0.0\` |"
 
       - name: Format CHANGELOG.md
         if: steps.tagpr.outputs.tag == ''

@@ -215,9 +215,14 @@
 		"description": "Versioning: semver (coerced)"
 	},
 	{
+		"name": "tagpr:major",
+		"color": "5319e7",
+		"description": "Bump major version (tagpr auto-label)"
+	},
+	{
 		"name": "tagpr:minor",
 		"color": "5319e7",
-		"description": "Bump minor version (legacy tagpr format)"
+		"description": "Bump minor version (tagpr auto-label)"
 	},
 	{
 		"name": "datasource:",
