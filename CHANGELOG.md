@@ -1,7 +1,9 @@
 # Changelog
 
 ## [v0.2.0](https://github.com/naa0yama/chezmage/compare/v0.1.8...v0.2.0) - 2026-02-23
+
 ### Other Changes
+
 - fix: tags.json by @naa0yama in https://github.com/naa0yama/chezmage/pull/23
 - feat: tagpr.yaml by @naa0yama in https://github.com/naa0yama/chezmage/pull/24
 
