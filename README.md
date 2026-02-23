@@ -169,9 +169,9 @@ alias chezmoi='chezmage'
 
 chezmage skips GPG decryption (and YubiKey touch) when it is not needed:
 
-**Passthrough subcommands** — metadata-only commands that never read encrypted content skip decryption entirely:
+**Passthrough subcommands** — commands that never read encrypted content skip decryption entirely. This includes metadata-only commands and write-only encryption commands that use only the age public key (recipient):
 
-`age-keygen`, `cat-config`, `cd`, `chattr`, `completion`, `data`, `doctor`, `dump-config`, `edit-config`, `edit-config-template`, `execute-template`, `forget`, `generate`, `git`, `help`, `ignored`, `license`, `managed`, `purge`, `secret`, `source-path`, `state`, `target-path`, `unmanaged`, `upgrade`
+`add`, `age-keygen`, `cat-config`, `cd`, `chattr`, `completion`, `data`, `doctor`, `dump-config`, `edit-config`, `edit-config-template`, `encrypt`, `execute-template`, `forget`, `generate`, `git`, `help`, `ignored`, `license`, `managed`, `purge`, `re-add`, `secret`, `source-path`, `state`, `target-path`, `unmanaged`, `upgrade`
 
 **`--exclude encrypted`** — when you explicitly exclude encrypted entries, chezmoi will not decrypt any files, so chezmage skips GPG decryption as well:
 
