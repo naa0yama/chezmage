@@ -185,6 +185,64 @@ fn test_cli_valid_key_attempts_chezmoi_exec() {
 }
 
 // -------------------------------------------------------------------------
+// Phase 3A-2: Passthrough subcommand integration tests
+// -------------------------------------------------------------------------
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_cli_passthrough_doctor_skips_gpg() {
+    // Arrange: no identity configured, but doctor is passthrough → skip GPG
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.arg("doctor")
+        .env_remove("CHEZMOI_AGE_KEY")
+        .env_remove("CHEZMOI_CONFIG")
+        .env_remove("CHEZMOI_AGE_GPG_KEY_FILE")
+        .env("HOME", "/tmp/chezmage-test-nonexistent")
+        .env("PATH", "/tmp/chezmage-test-nonexistent");
+
+    // Act & Assert: should fail with "chezmoi not found" (not "no age identity")
+    cmd.assert()
+        .failure()
+        .stdout(predicate::str::contains("chezmoi not found"));
+}
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_cli_passthrough_managed_skips_gpg() {
+    // Arrange: no identity configured, but managed is passthrough → skip GPG
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.arg("managed")
+        .env_remove("CHEZMOI_AGE_KEY")
+        .env_remove("CHEZMOI_CONFIG")
+        .env_remove("CHEZMOI_AGE_GPG_KEY_FILE")
+        .env("HOME", "/tmp/chezmage-test-nonexistent")
+        .env("PATH", "/tmp/chezmage-test-nonexistent");
+
+    // Act & Assert: should fail with "chezmoi not found" (not "no age identity")
+    cmd.assert()
+        .failure()
+        .stdout(predicate::str::contains("chezmoi not found"));
+}
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_cli_non_passthrough_apply_requires_gpg() {
+    // Arrange: no identity configured, apply requires decryption
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.arg("apply")
+        .env_remove("CHEZMOI_AGE_KEY")
+        .env_remove("CHEZMOI_CONFIG")
+        .env_remove("CHEZMOI_AGE_GPG_KEY_FILE")
+        .env("HOME", "/tmp/chezmage-test-nonexistent")
+        .env("PATH", "/tmp/chezmage-test-nonexistent");
+
+    // Act & Assert: should fail with "no age identity files found" (GPG path attempted)
+    cmd.assert()
+        .failure()
+        .stdout(predicate::str::contains("no age identity files found"));
+}
+
+// -------------------------------------------------------------------------
 // Phase 3B: Shim mode integration tests
 // -------------------------------------------------------------------------
 

@@ -11,6 +11,45 @@ use crate::exec::{ENV_AGE_KEY, ENV_GPG_KEY_FILE, expand_tilde, find_in_path, rep
 use crate::gpg::{decrypt, is_encrypted};
 use crate::secure::SecureString;
 
+/// Chezmoi subcommands that never need age decryption.
+///
+/// These commands deal only with metadata, config, or shell operations
+/// and never read encrypted file content.  Unknown subcommands always
+/// trigger decryption as a safe default.
+///
+/// Derived from chezmoi source (`internal/cmd/`):
+/// - Commands that never call `getSourceState()` / `newSourceState()`
+/// - Commands that use `makeRunEWithSourceState()` but only inspect
+///   metadata (paths / attributes), never calling `Contents()` which
+///   would trigger lazy `AgeEncryption.Decrypt()`.
+const PASSTHROUGH_SUBCOMMANDS: &[&str] = &[
+    "age-keygen",
+    "cat-config",
+    "cd",
+    "chattr",
+    "completion",
+    "data",
+    "doctor",
+    "dump-config",
+    "edit-config",
+    "edit-config-template",
+    "execute-template",
+    "forget",
+    "generate",
+    "git",
+    "help",
+    "ignored",
+    "license",
+    "managed",
+    "purge",
+    "secret",
+    "source-path",
+    "state",
+    "target-path",
+    "unmanaged",
+    "upgrade",
+];
+
 /// Run in wrapper mode: discover identities, decrypt GPG keys, set env var,
 /// and exec chezmoi with the original arguments.
 ///
@@ -27,6 +66,15 @@ pub fn run() -> Result<()> {
         .filter(|k| !k.is_empty())
         .is_some()
     {
+        exec_chezmoi(&args)?;
+    }
+
+    // Skip decryption for subcommands that never need age private keys
+    if !needs_decryption(&args) {
+        tracing::debug!(
+            subcommand = ?extract_subcommand(&args),
+            "passthrough: skipping GPG decryption",
+        );
         exec_chezmoi(&args)?;
     }
 
@@ -77,6 +125,23 @@ pub fn run() -> Result<()> {
     exec_chezmoi(&args)?;
 
     Ok(())
+}
+
+/// Extract the chezmoi subcommand from the argument list.
+///
+/// Returns the first argument that does not start with `-`.
+fn extract_subcommand(args: &[String]) -> Option<&str> {
+    args.iter()
+        .find(|a| !a.starts_with('-'))
+        .map(String::as_str)
+}
+
+/// Check whether the given arguments require age key decryption.
+///
+/// Returns `false` for known passthrough subcommands that never read
+/// encrypted content.  Returns `true` for everything else (safe default).
+fn needs_decryption(args: &[String]) -> bool {
+    extract_subcommand(args).is_none_or(|cmd| !PASSTHROUGH_SUBCOMMANDS.contains(&cmd))
 }
 
 /// Collect identity file paths in priority order:
@@ -360,5 +425,186 @@ mod tests {
 
         // Assert
         assert_eq!(content, "AGE-SECRET-KEY-1TESTKEY");
+    }
+
+    // -----------------------------------------------------------------
+    // extract_subcommand / needs_decryption
+    // -----------------------------------------------------------------
+
+    fn args(vals: &[&str]) -> Vec<String> {
+        vals.iter().map(|s| String::from(*s)).collect()
+    }
+
+    #[test]
+    fn test_extract_subcommand_simple() {
+        // Arrange
+        let a = args(&["doctor"]);
+
+        // Act & Assert
+        assert_eq!(extract_subcommand(&a), Some("doctor"));
+    }
+
+    #[test]
+    fn test_extract_subcommand_with_flags_before() {
+        // Arrange
+        let a = args(&["--color", "false", "managed"]);
+
+        // Act & Assert
+        assert_eq!(extract_subcommand(&a), Some("false"));
+    }
+
+    #[test]
+    fn test_extract_subcommand_empty_args() {
+        // Arrange
+        let a: Vec<String> = vec![];
+
+        // Act & Assert
+        assert_eq!(extract_subcommand(&a), None);
+    }
+
+    #[test]
+    fn test_extract_subcommand_only_flags() {
+        // Arrange
+        let a = args(&["--verbose", "--debug"]);
+
+        // Act & Assert
+        assert_eq!(extract_subcommand(&a), None);
+    }
+
+    #[test]
+    fn test_extract_subcommand_with_flags_after() {
+        // Arrange
+        let a = args(&["apply", "--verbose"]);
+
+        // Act & Assert
+        assert_eq!(extract_subcommand(&a), Some("apply"));
+    }
+
+    #[test]
+    fn test_needs_decryption_apply() {
+        // Arrange & Act & Assert
+        assert!(needs_decryption(&args(&["apply"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_diff() {
+        // Arrange & Act & Assert
+        assert!(needs_decryption(&args(&["diff"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_cd() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["cd"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_doctor() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["doctor"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_managed() {
+        // Arrange & Act & Assert
+        assert!(!needs_decryption(&args(&["managed"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_empty_args() {
+        // Arrange & Act & Assert
+        assert!(needs_decryption(&args(&[])));
+    }
+
+    #[test]
+    fn test_needs_decryption_unknown_command() {
+        // Arrange & Act & Assert
+        assert!(needs_decryption(&args(&["unknown-cmd"])));
+    }
+
+    #[test]
+    fn test_needs_decryption_with_flags_before_passthrough() {
+        // Arrange — first non-flag arg is "false", which is unknown
+        let a = args(&["--color", "false", "doctor"]);
+
+        // Act & Assert
+        assert!(needs_decryption(&a));
+    }
+
+    #[test]
+    fn test_needs_decryption_all_passthrough_subcommands() {
+        // Arrange
+        let all = [
+            "age-keygen",
+            "cat-config",
+            "cd",
+            "chattr",
+            "completion",
+            "data",
+            "doctor",
+            "dump-config",
+            "edit-config",
+            "edit-config-template",
+            "execute-template",
+            "forget",
+            "generate",
+            "git",
+            "help",
+            "ignored",
+            "license",
+            "managed",
+            "purge",
+            "secret",
+            "source-path",
+            "state",
+            "target-path",
+            "unmanaged",
+            "upgrade",
+        ];
+
+        // Act & Assert
+        for cmd in all {
+            assert!(
+                !needs_decryption(&args(&[cmd])),
+                "{cmd} should be passthrough"
+            );
+        }
+    }
+
+    #[test]
+    fn test_needs_decryption_commands_requiring_decryption() {
+        // Arrange
+        let all = [
+            "add",
+            "age",
+            "apply",
+            "archive",
+            "cat",
+            "decrypt",
+            "destroy",
+            "diff",
+            "docker",
+            "dump",
+            "edit",
+            "edit-encrypted",
+            "encrypt",
+            "import",
+            "init",
+            "merge",
+            "merge-all",
+            "re-add",
+            "ssh",
+            "status",
+            "update",
+            "verify",
+        ];
+
+        // Act & Assert
+        for cmd in all {
+            assert!(
+                needs_decryption(&args(&[cmd])),
+                "{cmd} should require decryption"
+            );
+        }
     }
 }
