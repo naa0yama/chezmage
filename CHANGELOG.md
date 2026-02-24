@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.2.8](https://github.com/naa0yama/chezmage/compare/v0.2.7...v0.2.8) - 2026-02-24
+
 ## [v0.2.7](https://github.com/naa0yama/chezmage/compare/v0.2.6...v0.2.7) - 2026-02-24
 
 ## [v0.2.6](https://github.com/naa0yama/chezmage/compare/v0.2.5...v0.2.6) - 2026-02-24
