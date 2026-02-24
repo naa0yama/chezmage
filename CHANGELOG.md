@@ -1,7 +1,9 @@
 # Changelog
 
 ## [v0.2.5](https://github.com/naa0yama/chezmage/compare/v0.2.4...v0.2.5) - 2026-02-24
+
 ### Documentation 🗒️
+
 - fix: windows pipe by @naa0yama in https://github.com/naa0yama/chezmage/pull/39
 
 ## [v0.2.4](https://github.com/naa0yama/chezmage/compare/v0.2.3...v0.2.4) - 2026-02-24
