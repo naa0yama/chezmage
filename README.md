@@ -209,8 +209,20 @@ mise run coverage      # Coverage report
 
 ## Troubleshooting
 
+### Linux
+
 ```bash
-RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- help
+RUST_LOG=trace RUST_BACKTRACE=1 chezmage --debug diff
+chezmage -V
+```
+
+### Windows
+
+```powershell
+$env:RUST_LOG="trace"
+$env:RUST_BACKTRACE=1
+chezmage --debug diff
+chezmage -V
 ```
 
 ## License
