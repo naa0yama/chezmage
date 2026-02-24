@@ -256,7 +256,7 @@ fn test_shim_no_age_key_falls_back() {
         .env("PATH", "/tmp/chezmage-test-nonexistent")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("age binary not found"));
+        .stderr(predicate::str::contains("age binary not found"));
 }
 
 #[test]
@@ -269,7 +269,7 @@ fn test_shim_with_key_no_identity_flag_falls_back() {
         .env("PATH", "/tmp/chezmage-test-nonexistent")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("age binary not found"));
+        .stderr(predicate::str::contains("age binary not found"));
 }
 
 #[test]
@@ -282,5 +282,5 @@ fn test_shim_flag_detection() {
         .env("PATH", "/tmp/chezmage-test-nonexistent")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("age binary not found"));
+        .stderr(predicate::str::contains("age binary not found"));
 }

@@ -27,6 +27,7 @@ pub mod wrapper;
 pub(crate) mod test_utils;
 
 use std::env;
+use std::io::Write as _;
 
 use clap::Parser;
 use tracing_subscriber::filter::EnvFilter;
@@ -66,21 +67,21 @@ struct Args {
 fn main() {
     secure::harden_process();
 
-    init_tracing();
-
     let raw_args: Vec<String> = env::args().skip(1).collect();
 
     if let Some(pos) = raw_args.iter().position(|a| a == "--shim") {
-        // Shim mode: strip --shim, pass remaining args to age pipe
+        // Shim mode: do NOT init tracing — chezmoi captures stderr as
+        // part of the decrypted plaintext, so any output contaminates it.
         let mut shim_args = raw_args;
         shim_args.remove(pos);
         if let Err(e) = shim::run(&shim_args) {
-            tracing::error!("{e:#}");
+            let _ = writeln!(std::io::stderr(), "chezmage: shim error: {e:#}");
             #[allow(clippy::exit)]
             std::process::exit(1);
         }
     } else {
-        // Wrapper mode: handle --help/--version via clap, then exec chezmoi
+        // Wrapper mode: init tracing normally
+        init_tracing();
         let _args = Args::parse();
 
         if let Err(e) = wrapper::run() {
