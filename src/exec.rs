@@ -96,8 +96,19 @@ pub fn find_real_age() -> Result<PathBuf> {
         .map(|p| env::split_paths(&p).collect())
         .unwrap_or_default();
 
-    find_age_in_dirs(&dirs, exe_name, self_path.as_deref())
-        .ok_or_else(|| anyhow::anyhow!("age binary not found in PATH"))
+    let found = find_age_in_dirs(&dirs, exe_name, self_path.as_deref());
+
+    if let Some(ref path) = found {
+        tracing::debug!(path = %path.display(), "found real age binary");
+    } else {
+        tracing::debug!(
+            exe_name,
+            dirs_count = dirs.len(),
+            "age binary not found in PATH",
+        );
+    }
+
+    found.ok_or_else(|| anyhow::anyhow!("age binary not found in PATH"))
 }
 
 /// Replace the current process with the given program (Unix: execvp).
