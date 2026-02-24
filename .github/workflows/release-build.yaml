@@ -26,7 +26,7 @@ jobs:
   build-matrix:
     name: build-${{ matrix.target }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read # Required to checkout the repository
       actions: write # Required to upload artifacts
