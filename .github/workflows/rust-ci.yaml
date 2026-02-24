@@ -22,8 +22,6 @@ jobs:
     permissions:
       contents: read # Required to checkout the repository
     outputs:
-      binary_name: ${{ steps.versions.outputs.binary_name }}
-      package_name: ${{ steps.versions.outputs.package_name }}
       sccache: ${{ steps.versions.outputs.sccache }}
 
     steps:
@@ -44,20 +42,7 @@ jobs:
         id: versions
         run: |
           sccache_version=$(grep -E '^ARG SCCACHE_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG SCCACHE_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-          package_name=$(grep -E '^\[package\]' -A 10 Cargo.toml | grep -E '^name = "' | sed -E 's/name = "(.*)"/\1/')
-
-          if grep -q '^\[\[bin\]\]' Cargo.toml; then
-            main_bin=$(grep -E '^\[\[bin\]\]' -A 10 Cargo.toml | grep -E '^name = "'"$package_name"'"' | sed -E 's/name = "(.*)"/\1/')
-            binary_name=${main_bin:-$(grep -E '^\[\[bin\]\]' -A 10 Cargo.toml | grep -E '^name = "' | head -n 1 | sed -E 's/name = "(.*)"/\1/')}
-          else
-            binary_name="$package_name"
-          fi
-
-          {
-            echo "sccache=${sccache_version}";
-            echo "package_name=${package_name}";
-            echo "binary_name=${binary_name}";
-          } >> "$GITHUB_OUTPUT"
+          echo "sccache=${sccache_version}" >> "$GITHUB_OUTPUT"
 
       - name: Rust setup
         uses: ./.github/actions/act-setup-rust
@@ -163,13 +148,13 @@ jobs:
 
       - name: Check compilation
         run: |
-          set -euxo pipefail
-          mise run check
+          # shellcheck disable=SC2086
+          cargo check ${TARGET:+--target "$TARGET"} ${CARGO_ARGS}
 
   test:
     name: test
     runs-on: ubuntu-latest
-    needs: [fmt, check]
+    needs: [fmt]
     timeout-minutes: 15
     permissions:
       actions: read #         For octocov to retrieve previous reports from artifacts
@@ -208,45 +193,3 @@ jobs:
         uses: k1LoW/octocov-action@73d561f65d59e66899ed5c87e4621a913b5d5c20 # v1.5.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  build:
-    name: build
-    runs-on: ubuntu-latest
-    needs: [fmt, check, test]
-    timeout-minutes: 15
-    permissions:
-      contents: read # Required to checkout the repository
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Rust setup
-        uses: ./.github/actions/act-setup-rust
-        with:
-          sccache: ${{ needs.fmt.outputs.sccache }}
-
-      - name: Cache mise tools
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.local/share/mise
-          key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
-          restore-keys: |
-            mise-v1-${{ runner.os }}-${{ runner.arch }}-
-
-      - uses: jdx/mise-action@6d1e696aa24c1aa1bcc1adea0212707c71ab78a8 # v3
-        with:
-          cache: false
-
-      - name: Build release binary
-        run: |
-          set -euxo pipefail
-          mise run build:release
-
-      - name: Upload binary artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: binary-${{ needs.fmt.outputs.binary_name }}
-          path: target/release/${{ needs.fmt.outputs.binary_name }}
