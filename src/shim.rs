@@ -1,15 +1,13 @@
 //! Shim mode: deliver age key from env var to the real `age` binary via pipe fd.
 
-#[cfg(unix)]
 use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, RawFd};
-#[cfg(unix)]
+#[cfg(windows)]
+use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use std::process::{Command, Stdio};
 
-#[cfg(unix)]
-use anyhow::Context;
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 
 use crate::exec::{ENV_AGE_KEY, find_real_age, replace_process};
 
@@ -32,6 +30,15 @@ impl Drop for PipeFd {
     }
 }
 
+/// RAII wrapper for a Windows Named Pipe server handle.
+///
+/// `OwnedHandle` calls `CloseHandle` on drop, so no custom `Drop` is needed.
+#[cfg(windows)]
+struct NamedPipe {
+    handle: OwnedHandle,
+    name: String,
+}
+
 /// Run in shim mode: read the age key from `ENV_AGE_KEY` and deliver it
 /// to the real `age` binary via a pipe file descriptor.
 ///
@@ -50,7 +57,25 @@ pub fn run(args: &[String]) -> Result<()> {
         bail!("failed to exec age: {err}");
     };
 
-    deliver_key_via_pipe(&age_key, args)
+    deliver_key(&age_key, args)
+}
+
+/// Platform dispatch for key delivery.
+#[cfg(unix)]
+fn deliver_key(age_key: &str, args: &[String]) -> Result<()> {
+    deliver_key_via_pipe(age_key, args)
+}
+
+/// Platform dispatch for key delivery.
+#[cfg(windows)]
+fn deliver_key(age_key: &str, args: &[String]) -> Result<()> {
+    deliver_key_via_named_pipe(age_key, args)
+}
+
+/// Pipe-based key delivery is not supported on this platform.
+#[cfg(not(any(unix, windows)))]
+fn deliver_key(_age_key: &str, _args: &[String]) -> Result<()> {
+    bail!("pipe-based key delivery requires Unix or Windows");
 }
 
 /// Deliver the age key to the real `age` binary via a Unix pipe fd.
@@ -83,10 +108,47 @@ fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
     std::process::exit(status.code().unwrap_or(1));
 }
 
-/// Pipe-based key delivery is not supported on non-Unix platforms.
-#[cfg(not(unix))]
-fn deliver_key_via_pipe(_age_key: &str, _args: &[String]) -> Result<()> {
-    bail!("pipe-based key delivery requires Unix (Linux/macOS)");
+/// Deliver the age key to the real `age` binary via a Windows Named Pipe.
+///
+/// Spawns a writer thread to serve the key, then spawns age with the pipe
+/// path as identity source and waits for completion.
+#[cfg(windows)]
+fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
+    let pipe = create_named_pipe().context("failed to create named pipe")?;
+    let pipe_path = pipe.name.clone();
+
+    let (has_identity, new_args) = rewrite_identity_args(args, &pipe_path);
+
+    if !has_identity {
+        drop(pipe);
+        let age = find_real_age()?;
+        let err = replace_process(&age, args);
+        bail!("failed to exec age: {err}");
+    }
+
+    // Spawn a writer thread: ConnectNamedPipe blocks until age opens the pipe,
+    // then write the key and clean up.
+    let key_owned = String::from(age_key);
+    let writer = std::thread::spawn(move || serve_key_on_pipe(pipe, &key_owned));
+
+    let age = find_real_age()?;
+    let mut child = Command::new(&age)
+        .args(&new_args)
+        .stdin(Stdio::inherit())
+        .spawn()
+        .with_context(|| format!("failed to spawn age: {}", age.display()))?;
+
+    let status = child.wait().context("waiting for age process")?;
+
+    // Best-effort join: log but don't fail on writer errors.
+    match writer.join() {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => tracing::warn!(error = %e, "named pipe writer failed"),
+        Err(_) => tracing::warn!("named pipe writer thread panicked"),
+    }
+
+    #[allow(clippy::exit)]
+    std::process::exit(status.code().unwrap_or(1));
 }
 
 /// Create an OS pipe, write the age key to the write end, close it,
@@ -128,6 +190,129 @@ fn close_fd(fd: RawFd) {
             "failed to close pipe fd"
         );
     }
+}
+
+/// Generate a unique Named Pipe name using PID and a random value.
+///
+/// Format: `\\.\pipe\chezmage-{pid}-{random_u64}`
+#[cfg(windows)]
+fn generate_pipe_name() -> String {
+    use std::collections::hash_map::RandomState;
+    use std::hash::{BuildHasher, Hasher};
+
+    let pid = std::process::id();
+    let random = RandomState::new().build_hasher().finish();
+    format!(r"\\.\pipe\chezmage-{pid}-{random}")
+}
+
+/// Create a Windows Named Pipe server for outbound byte-mode delivery.
+///
+/// # Errors
+///
+/// Returns an error if the pipe cannot be created.
+#[cfg(windows)]
+fn create_named_pipe() -> Result<NamedPipe> {
+    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_FIRST_PIPE_INSTANCE;
+    use windows_sys::Win32::System::Pipes::{
+        CreateNamedPipeW, PIPE_ACCESS_OUTBOUND, PIPE_READMODE_BYTE, PIPE_REJECT_REMOTE_CLIENTS,
+        PIPE_TYPE_BYTE, PIPE_WAIT,
+    };
+    use windows_sys::core::HRESULT;
+
+    let name = generate_pipe_name();
+    let wide_name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+
+    // SAFETY: CreateNamedPipeW is a Windows API call. wide_name is a valid
+    // null-terminated UTF-16 string. The flags ensure: write-only server,
+    // byte mode, single instance, local-only connections.
+    let raw_handle = unsafe {
+        CreateNamedPipeW(
+            wide_name.as_ptr(),
+            PIPE_ACCESS_OUTBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE,
+            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+            1,    // nMaxInstances: single instance
+            4096, // nOutBufferSize
+            0,    // nInBufferSize: write-only pipe
+            0,    // nDefaultTimeOut: use system default
+            std::ptr::null(),
+        )
+    };
+
+    #[allow(clippy::as_conversions)]
+    if raw_handle == windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE {
+        let code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+        bail!(
+            "CreateNamedPipeW failed for {name}: HRESULT 0x{:08x}",
+            code as HRESULT
+        );
+    }
+
+    // SAFETY: raw_handle is a valid handle just returned by CreateNamedPipeW
+    // (checked against INVALID_HANDLE_VALUE above). OwnedHandle takes
+    // ownership and will call CloseHandle on drop.
+    let handle = unsafe { OwnedHandle::from_raw_handle(raw_handle as *mut std::ffi::c_void) };
+
+    Ok(NamedPipe { handle, name })
+}
+
+/// Serve the age key on an already-created Named Pipe, then clean up.
+///
+/// Blocks until a client connects, writes the key, and disconnects.
+///
+/// # Errors
+///
+/// Returns an error if connecting, writing, or flushing fails.
+#[cfg(windows)]
+fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::FlushFileBuffers;
+    use windows_sys::Win32::System::IO::OVERLAPPED;
+    use windows_sys::Win32::System::Pipes::{ConnectNamedPipe, DisconnectNamedPipe};
+
+    let raw = pipe.handle.as_raw_handle() as isize;
+
+    // SAFETY: raw is a valid named pipe server handle. ConnectNamedPipe
+    // blocks until a client connects. NULL overlapped = synchronous.
+    let ret = unsafe { ConnectNamedPipe(raw, std::ptr::null_mut::<OVERLAPPED>()) };
+    if ret == 0 {
+        let err = std::io::Error::last_os_error();
+        // ERROR_PIPE_CONNECTED (535) means client connected before we called
+        // ConnectNamedPipe — this is a success condition.
+        #[allow(clippy::as_conversions)]
+        let code = err.raw_os_error().unwrap_or(0) as u32;
+        if code != windows_sys::Win32::Foundation::ERROR_PIPE_CONNECTED {
+            bail!("ConnectNamedPipe failed: {err}");
+        }
+    }
+
+    // Write key data through a File wrapper for std::io::Write support.
+    // SAFETY: raw is still a valid handle. We duplicate it so the File
+    // does not close our OwnedHandle prematurely — we need it for
+    // disconnect. DuplicateHandle with default options creates an
+    // inheritable copy.
+    let write_handle = pipe
+        .handle
+        .try_clone()
+        .context("failed to clone pipe handle")?;
+    let mut write_file = unsafe { std::fs::File::from_raw_handle(write_handle.into_raw_handle()) };
+    writeln!(write_file, "{age_key}").context("failed to write key to named pipe")?;
+    drop(write_file);
+
+    // SAFETY: raw is a valid pipe handle. FlushFileBuffers ensures all
+    // data reaches the client before we disconnect.
+    unsafe {
+        FlushFileBuffers(raw);
+    }
+
+    // SAFETY: raw is a valid connected pipe handle. DisconnectNamedPipe
+    // terminates the client connection.
+    unsafe {
+        DisconnectNamedPipe(raw);
+    }
+
+    // OwnedHandle drop calls CloseHandle
+    drop(pipe);
+
+    Ok(())
 }
 
 /// Rewrite `-i <path>` / `--identity <path>` / `--identity=<path>` args
@@ -381,5 +566,71 @@ mod tests {
         read_file.read_to_string(&mut buf).unwrap();
         assert_eq!(buf.trim(), key);
         // read_file drop closes the fd
+    }
+
+    #[test]
+    #[cfg(windows)]
+    #[cfg_attr(miri, ignore)]
+    fn test_generate_pipe_name_format() {
+        // Arrange & Act
+        let name = generate_pipe_name();
+
+        // Assert: must start with pipe prefix and contain PID
+        let pid = std::process::id().to_string();
+        assert!(
+            name.starts_with(r"\\.\pipe\chezmage-"),
+            "pipe name must start with \\\\.\\pipe\\chezmage-"
+        );
+        // Extract the middle segment (PID)
+        let suffix = name.strip_prefix(r"\\.\pipe\chezmage-").unwrap();
+        let parts: Vec<&str> = suffix.splitn(2, '-').collect();
+        assert_eq!(parts.len(), 2, "expected pid-random format");
+        assert_eq!(parts[0], pid, "PID segment must match current process");
+        // Random part should be a valid u64
+        assert!(
+            parts[1].parse::<u64>().is_ok(),
+            "random segment must be a valid u64"
+        );
+    }
+
+    #[test]
+    #[cfg(windows)]
+    #[cfg_attr(miri, ignore)]
+    fn test_generate_pipe_name_uniqueness() {
+        // Arrange & Act: generate two names
+        let name1 = generate_pipe_name();
+        let name2 = generate_pipe_name();
+
+        // Assert: names should differ (random component)
+        assert_ne!(name1, name2, "pipe names should be unique");
+    }
+
+    #[test]
+    #[cfg(windows)]
+    #[cfg_attr(miri, ignore)]
+    fn test_named_pipe_roundtrip() {
+        // Arrange: create a named pipe and serve key data from a thread
+        use std::fs::File;
+        use std::io::Read;
+
+        let pipe = create_named_pipe().unwrap();
+        let pipe_path = pipe.name.clone();
+
+        let key_prefix = ["AGE", "SECRET", "KEY", "1"].join("-");
+        let key = format!("{key_prefix}TESTNAMEDPIPE");
+        let key_clone = key.clone();
+
+        // Act: writer thread serves the key
+        let writer = std::thread::spawn(move || serve_key_on_pipe(pipe, &key_clone));
+
+        // Client reads from the pipe
+        let mut client = File::open(&pipe_path).unwrap();
+        let mut buf = String::new();
+        client.read_to_string(&mut buf).unwrap();
+
+        writer.join().unwrap().unwrap();
+
+        // Assert
+        assert_eq!(buf.trim(), key);
     }
 }
