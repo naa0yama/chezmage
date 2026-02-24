@@ -1,6 +1,16 @@
 # Changelog
 
 ## [v0.2.3](https://github.com/naa0yama/chezmage/compare/v0.2.2...v0.2.3) - 2026-02-24
+### Dependency Updates 👒
+- chore(deps): update taiki-e/install-action action to v2.68.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/29
+- chore(deps): update dependency usage to v2.17.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/31
+- fix(deps): update rust crate windows-sys to 0.61 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/33
+### Other Changes
+- feat: Windows NamedPipe by @naa0yama in https://github.com/naa0yama/chezmage/pull/32
+- feat: cros-build check by @naa0yama in https://github.com/naa0yama/chezmage/pull/34
+- fix: action spilt by @naa0yama in https://github.com/naa0yama/chezmage/pull/36
+
+## [v0.2.3](https://github.com/naa0yama/chezmage/compare/v0.2.2...v0.2.3) - 2026-02-24
 
 ### Dependency Updates 👒
 
