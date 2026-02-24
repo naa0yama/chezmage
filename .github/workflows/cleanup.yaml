@@ -53,6 +53,8 @@ jobs:
           BRANCH: ${{ github.head_ref || github.ref_name }}
 
       - name: Delete untagged containers
+        # Package may not exist yet (first push hasn't happened)
+        continue-on-error: true
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-name: ${{ steps.repo_name.outputs.lowercase }}/devcontainer
