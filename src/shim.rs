@@ -4,7 +4,7 @@ use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, RawFd};
 #[cfg(windows)]
-use std::os::windows::io::{AsRawHandle, FromRawHandle, IntoRawHandle, OwnedHandle};
+use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail};
@@ -148,12 +148,14 @@ fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
         bail!("failed to exec age: {err}");
     }
 
+    // Resolve age binary *before* spawning the writer thread so that a
+    // lookup failure doesn't leave a thread blocked on ConnectNamedPipe.
+    let age = find_real_age()?;
+
     // Spawn a writer thread: ConnectNamedPipe blocks until age opens the pipe,
     // then write the key and clean up.
     let key_owned = String::from(age_key);
     let writer = std::thread::spawn(move || serve_key_on_pipe(pipe, &key_owned));
-
-    let age = find_real_age()?;
 
     tracing::debug!(age = %age.display(), args = ?new_args, "spawning age");
 
@@ -310,24 +312,28 @@ fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
     }
 
     // Write key data through a File wrapper for std::io::Write support.
-    // SAFETY: We clone the handle so the File does not close our
-    // OwnedHandle prematurely — we need it for disconnect.
-    let write_handle = pipe
-        .handle
-        .try_clone()
-        .context("failed to clone pipe handle")?;
-    // SAFETY: write_handle is a valid duplicated pipe handle. File takes
-    // ownership via into_raw_handle() and closes it on drop.
-    let mut write_file = unsafe { std::fs::File::from_raw_handle(write_handle.into_raw_handle()) };
+    // SAFETY: raw is a valid pipe handle owned by pipe.handle.  ManuallyDrop
+    // prevents File from calling CloseHandle on drop — pipe.handle retains
+    // ownership and closes the handle in its own Drop impl.
+    //
+    // We write through the *same* handle that we later flush with
+    // FlushFileBuffers so that the kernel's per-handle write tracking
+    // correctly waits for the client to read all buffered data.
+    let mut write_file =
+        std::mem::ManuallyDrop::new(unsafe { std::fs::File::from_raw_handle(raw) });
     writeln!(write_file, "{age_key}").context("failed to write key to named pipe")?;
-    drop(write_file);
 
     tracing::debug!("key delivered via named pipe");
 
-    // SAFETY: raw is a valid pipe handle. FlushFileBuffers ensures all
-    // data reaches the client before we disconnect.
-    unsafe {
-        FlushFileBuffers(raw);
+    // SAFETY: raw is the same handle used for writing above.
+    // FlushFileBuffers ensures all data reaches the client before we
+    // disconnect.
+    let flush_ok = unsafe { FlushFileBuffers(raw) };
+    if flush_ok == 0 {
+        tracing::warn!(
+            error = %std::io::Error::last_os_error(),
+            "FlushFileBuffers failed",
+        );
     }
 
     // SAFETY: raw is a valid connected pipe handle. DisconnectNamedPipe
