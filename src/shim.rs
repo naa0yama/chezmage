@@ -51,7 +51,14 @@ struct NamedPipe {
 pub fn run(args: &[String]) -> Result<()> {
     let age_key = std::env::var(ENV_AGE_KEY).ok().filter(|k| !k.is_empty());
 
+    tracing::debug!(
+        args = ?args,
+        has_age_key = age_key.is_some(),
+        "shim mode activated",
+    );
+
     let Some(age_key) = age_key else {
+        tracing::debug!("CHEZMOI_AGE_KEY not set, falling back to direct age exec");
         let age = find_real_age()?;
         let err = replace_process(&age, args);
         bail!("failed to exec age: {err}");
@@ -84,16 +91,24 @@ fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
     let pipe = create_key_pipe(age_key).context("failed to create key pipe")?;
     let identity_source = format!("/dev/fd/{}", pipe.as_raw_fd());
 
+    tracing::debug!(identity_source = %identity_source, "created key pipe");
+
     let (has_identity, new_args) = rewrite_identity_args(args, &identity_source);
+
+    tracing::debug!(has_identity, args = ?new_args, "rewrote identity args");
 
     if !has_identity {
         drop(pipe);
+        tracing::debug!("no identity flag found, falling back to direct age exec");
         let age = find_real_age()?;
         let err = replace_process(&age, args);
         bail!("failed to exec age: {err}");
     }
 
     let age = find_real_age()?;
+
+    tracing::debug!(age = %age.display(), args = ?new_args, "spawning age");
+
     let mut child = Command::new(&age)
         .args(&new_args)
         .stdin(Stdio::inherit())
@@ -101,6 +116,8 @@ fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
         .with_context(|| format!("failed to spawn age: {}", age.display()))?;
 
     let status = child.wait().context("waiting for age process")?;
+
+    tracing::debug!(exit_code = ?status.code(), "age process exited");
 
     drop(pipe);
 
@@ -117,10 +134,15 @@ fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
     let pipe = create_named_pipe().context("failed to create named pipe")?;
     let pipe_path = pipe.name.clone();
 
+    tracing::debug!(pipe = %pipe_path, "created named pipe");
+
     let (has_identity, new_args) = rewrite_identity_args(args, &pipe_path);
+
+    tracing::debug!(has_identity, args = ?new_args, "rewrote identity args");
 
     if !has_identity {
         drop(pipe);
+        tracing::debug!("no identity flag found, falling back to direct age exec");
         let age = find_real_age()?;
         let err = replace_process(&age, args);
         bail!("failed to exec age: {err}");
@@ -132,6 +154,9 @@ fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
     let writer = std::thread::spawn(move || serve_key_on_pipe(pipe, &key_owned));
 
     let age = find_real_age()?;
+
+    tracing::debug!(age = %age.display(), args = ?new_args, "spawning age");
+
     let mut child = Command::new(&age)
         .args(&new_args)
         .stdin(Stdio::inherit())
@@ -139,6 +164,8 @@ fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
         .with_context(|| format!("failed to spawn age: {}", age.display()))?;
 
     let status = child.wait().context("waiting for age process")?;
+
+    tracing::debug!(exit_code = ?status.code(), "age process exited");
 
     // Best-effort join: log but don't fail on writer errors.
     match writer.join() {
@@ -264,6 +291,9 @@ fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
     use windows_sys::Win32::System::Pipes::{ConnectNamedPipe, DisconnectNamedPipe};
 
     let raw = pipe.handle.as_raw_handle();
+    let pipe_name = &pipe.name;
+
+    tracing::debug!(pipe = %pipe_name, "waiting for client connection");
 
     // SAFETY: raw is a valid named pipe server handle. ConnectNamedPipe
     // blocks until a client connects. NULL overlapped = synchronous.
@@ -291,6 +321,8 @@ fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
     let mut write_file = unsafe { std::fs::File::from_raw_handle(write_handle.into_raw_handle()) };
     writeln!(write_file, "{age_key}").context("failed to write key to named pipe")?;
     drop(write_file);
+
+    tracing::debug!("key delivered via named pipe");
 
     // SAFETY: raw is a valid pipe handle. FlushFileBuffers ensures all
     // data reaches the client before we disconnect.
