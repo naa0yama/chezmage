@@ -4,7 +4,7 @@ use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, RawFd};
 #[cfg(windows)]
-use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
+use std::os::windows::io::{AsRawHandle, FromRawHandle, IntoRawHandle, OwnedHandle};
 use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail};
@@ -212,12 +212,12 @@ fn generate_pipe_name() -> String {
 /// Returns an error if the pipe cannot be created.
 #[cfg(windows)]
 fn create_named_pipe() -> Result<NamedPipe> {
-    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_FIRST_PIPE_INSTANCE;
-    use windows_sys::Win32::System::Pipes::{
-        CreateNamedPipeW, PIPE_ACCESS_OUTBOUND, PIPE_READMODE_BYTE, PIPE_REJECT_REMOTE_CLIENTS,
-        PIPE_TYPE_BYTE, PIPE_WAIT,
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_ACCESS_OUTBOUND,
     };
-    use windows_sys::core::HRESULT;
+    use windows_sys::Win32::System::Pipes::{
+        CreateNamedPipeW, PIPE_READMODE_BYTE, PIPE_REJECT_REMOTE_CLIENTS, PIPE_TYPE_BYTE, PIPE_WAIT,
+    };
 
     let name = generate_pipe_name();
     let wide_name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
@@ -238,19 +238,15 @@ fn create_named_pipe() -> Result<NamedPipe> {
         )
     };
 
-    #[allow(clippy::as_conversions)]
     if raw_handle == windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE {
         let code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
-        bail!(
-            "CreateNamedPipeW failed for {name}: HRESULT 0x{:08x}",
-            code as HRESULT
-        );
+        bail!("CreateNamedPipeW failed for {name}: error code {code}");
     }
 
     // SAFETY: raw_handle is a valid handle just returned by CreateNamedPipeW
     // (checked against INVALID_HANDLE_VALUE above). OwnedHandle takes
     // ownership and will call CloseHandle on drop.
-    let handle = unsafe { OwnedHandle::from_raw_handle(raw_handle as *mut std::ffi::c_void) };
+    let handle = unsafe { OwnedHandle::from_raw_handle(raw_handle) };
 
     Ok(NamedPipe { handle, name })
 }
@@ -265,14 +261,13 @@ fn create_named_pipe() -> Result<NamedPipe> {
 #[cfg(windows)]
 fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
     use windows_sys::Win32::Storage::FileSystem::FlushFileBuffers;
-    use windows_sys::Win32::System::IO::OVERLAPPED;
     use windows_sys::Win32::System::Pipes::{ConnectNamedPipe, DisconnectNamedPipe};
 
-    let raw = pipe.handle.as_raw_handle() as isize;
+    let raw = pipe.handle.as_raw_handle();
 
     // SAFETY: raw is a valid named pipe server handle. ConnectNamedPipe
     // blocks until a client connects. NULL overlapped = synchronous.
-    let ret = unsafe { ConnectNamedPipe(raw, std::ptr::null_mut::<OVERLAPPED>()) };
+    let ret = unsafe { ConnectNamedPipe(raw, std::ptr::null_mut()) };
     if ret == 0 {
         let err = std::io::Error::last_os_error();
         // ERROR_PIPE_CONNECTED (535) means client connected before we called
@@ -285,14 +280,14 @@ fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
     }
 
     // Write key data through a File wrapper for std::io::Write support.
-    // SAFETY: raw is still a valid handle. We duplicate it so the File
-    // does not close our OwnedHandle prematurely — we need it for
-    // disconnect. DuplicateHandle with default options creates an
-    // inheritable copy.
+    // SAFETY: We clone the handle so the File does not close our
+    // OwnedHandle prematurely — we need it for disconnect.
     let write_handle = pipe
         .handle
         .try_clone()
         .context("failed to clone pipe handle")?;
+    // SAFETY: write_handle is a valid duplicated pipe handle. File takes
+    // ownership via into_raw_handle() and closes it on drop.
     let mut write_file = unsafe { std::fs::File::from_raw_handle(write_handle.into_raw_handle()) };
     writeln!(write_file, "{age_key}").context("failed to write key to named pipe")?;
     drop(write_file);
