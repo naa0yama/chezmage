@@ -290,7 +290,7 @@ fn create_named_pipe() -> Result<NamedPipe> {
 #[cfg(windows)]
 fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
     use windows_sys::Win32::Storage::FileSystem::FlushFileBuffers;
-    use windows_sys::Win32::System::Pipes::{ConnectNamedPipe, DisconnectNamedPipe};
+    use windows_sys::Win32::System::Pipes::ConnectNamedPipe;
 
     let raw = pipe.handle.as_raw_handle();
     let pipe_name = &pipe.name;
@@ -336,13 +336,11 @@ fn serve_key_on_pipe(pipe: NamedPipe, age_key: &str) -> Result<()> {
         );
     }
 
-    // SAFETY: raw is a valid connected pipe handle. DisconnectNamedPipe
-    // terminates the client connection.
-    unsafe {
-        DisconnectNamedPipe(raw);
-    }
-
-    // OwnedHandle drop calls CloseHandle
+    // Do NOT call DisconnectNamedPipe here.  DisconnectNamedPipe causes the
+    // client to receive ERROR_PIPE_NOT_CONNECTED (233) on subsequent reads,
+    // which Go does not translate to io.EOF.  Instead, let OwnedHandle::drop
+    // call CloseHandle, which yields ERROR_BROKEN_PIPE (109) — Go converts
+    // that to io.EOF so age cleanly finishes reading the identity.
     drop(pipe);
 
     Ok(())
