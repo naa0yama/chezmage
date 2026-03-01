@@ -1,0 +1,9 @@
+# Rust build artifacts (~7.7GB)
+target/
+
+# Git history
+.git/
+.history/
+
+# Temporary files
+tmp/
