@@ -26,7 +26,7 @@ ARG CURL_OPTS="-sfSL --retry 3 --retry-delay 2 --retry-connrefused"
 #- -------------------------------------------------------------------------------------------------
 #- Builder Base
 #-
-FROM rust:1.92.0-trixie@sha256:f58923369ba295ae1f60bc49d03f2c955a5c93a0b7d49acfb2b2a65bebaf350d AS builder-base
+FROM rust:1.93.0-trixie@sha256:bbde3ca426faeebab3eb58b8005d3d6da70607817a14bb92a55c94611d4d905f AS builder-base
 ARG CACHE_VERSION \
 	CURL_OPTS \
 	DEBIAN_FRONTEND \
@@ -174,8 +174,11 @@ RUN echo "**** Install mise ****" && \
 	~/.local/bin/mise --version
 
 COPY --chown=${USER_NAME}:${USER_NAME} mise.toml /tmp/mise.toml
-RUN echo "**** Install tools via mise ****" && \
+RUN --mount=type=secret,id=MISE_GITHUB_TOKEN,mode=0444 \
+	\
+	echo "**** Install tools via mise ****" && \
 	set -euxo pipefail && \
+	{ set +x; if [ -f /run/secrets/MISE_GITHUB_TOKEN ] && [ -s /run/secrets/MISE_GITHUB_TOKEN ]; then export MISE_GITHUB_TOKEN=$(cat /run/secrets/MISE_GITHUB_TOKEN); echo "MISE_GITHUB_TOKEN loaded from secret"; fi; set -x; } && \
 	cd /tmp && \
 	~/.local/bin/mise trust -y /tmp/mise.toml && \
 	~/.local/bin/mise install -y && \
