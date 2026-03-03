@@ -74,7 +74,7 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage
 [dev-dependencies]
 assert_cmd = "=2.1.2"
 predicates = "=3.1.4"
-tempfile = "=3.25.0"
+tempfile = "=3.26.0"
 
 # - ---------------------------------------------------------------------------------------------
 # - Lints
