@@ -28,27 +28,6 @@ mod tests {
 - Use Arrange / Act / Assert comments in each test.
 - `use super::*` is the only allowed wildcard import.
 
-## Async Test Template
-
-```rust
-#[tokio::test]
-async fn test_async_operation() {
-    // Arrange
-    let mock = MockSyoboiApi::new(vec![batch1, batch2]);
-
-    // Act
-    let result = lookup_all_programs(&mock, &params).await.unwrap();
-
-    // Assert
-    assert_eq!(result.len(), expected_count);
-}
-```
-
-## Mock Pattern
-
-Implement traits on mock structs with pre-configured responses.
-See `src/libs/syoboi/util.rs` tests for `MockSyoboiApi` example.
-
 ## Integration Test Template
 
 File: `tests/<name>.rs`
@@ -59,37 +38,63 @@ File: `tests/<name>.rs`
 
 use assert_cmd::cargo_bin_cmd;
 use predicates::prelude::predicate;
+use tempfile::TempDir;
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_cli_subcommand() {
     // Arrange & Act & Assert
-    let mut cmd = cargo_bin_cmd!("dtvmgr");
-    cmd.args(["api", "prog", "--help"])
+    let mut cmd = cargo_bin_cmd!("chezmage");
+    cmd.arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("--time-since"));
+        .stdout(predicate::str::contains("chezmage"));
 }
 ```
 
 - Use `assert_cmd::cargo_bin_cmd!` macro, chain `.assert().success()` / `.failure()`.
 - Use `predicates::str::contains()` for output content checks.
+- Add `#[cfg_attr(miri, ignore)]` — process-spawning tests cannot run under Miri.
 
-## Fixtures & HTTP Mocking
+## Tempfile Pattern
 
-Load fixtures with `include_str!`:
-
-```rust
-const FIXTURE: &str = include_str!("../../fixtures/syoboi/title_lookup_6309.xml");
-```
-
-Use `wiremock::MockServer` for HTTP mocking:
+Use `tempfile::TempDir` for tests requiring file system access:
 
 ```rust
-let mock_server = wiremock::MockServer::start().await;
-wiremock::Mock::given(wiremock::matchers::method("GET"))
-    .respond_with(wiremock::ResponseTemplate::new(200).set_body_string(FIXTURE))
-    .mount(&mock_server).await;
+#[test]
+#[cfg_attr(miri, ignore)] // tempfile I/O unsupported under Miri isolation
+fn test_with_temp_files() {
+    // Arrange
+    let dir = tempfile::TempDir::new().unwrap();
+    let config_path = dir.path().join("chezmoi.toml");
+    std::fs::write(&config_path, "[age]\nidentity = \"/tmp/key.txt\"").unwrap();
+
+    // Act & Assert
+    // ...
+}
 ```
+
+## Miri Compatibility
+
+For universal Miri rules and decision flowchart, see
+`~/.claude/skills/rust-implementation/references/testing.md` → "Miri" section.
+
+### Per-Test Skip Categories
+
+1. **File system (tempfile)** — 30 tests. Tests using `tempfile::tempdir()` or real file I/O. Miri has limited file system support under isolation mode.
+2. **Process spawning (assert_cmd)** — 15 tests. Integration tests that execute the `chezmage` binary via `std::process::Command`. Miri cannot spawn external processes.
+3. **Environment variables** — 5 tests. Tests relying on `HOME` env var or `std::env::set_var`. Env vars are not forwarded under Miri isolation.
+4. **Platform FFI (libc / windows-sys)** — 4 tests. Tests using named pipes (`mkfifo`) or process hardening (`prctl`) via `libc` FFI. Miri cannot interpret foreign function calls.
+5. **Zeroize (custom Drop)** — 9 tests. Tests for `SecureString` with `zeroize` derive. Custom `Drop` impls interact with Miri's stacked borrows model.
+
+### Statistics
+
+| Metric                      | Count |
+| --------------------------- | ----- |
+| Total tests                 | 141   |
+| Miri-compatible             | 78    |
+| Miri-ignored (per-test)     | 63    |
+| Miri-excluded (crate-level) | 0     |
 
 ## Coverage
 

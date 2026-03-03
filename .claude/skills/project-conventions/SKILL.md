@@ -1,15 +1,14 @@
 ---
 name: project-conventions
 description: >-
-  Project-specific conventions for the dtvmgr Rust CLI. Enforces mandatory
+  Project-specific conventions for the chezmage Rust CLI. Enforces mandatory
   error context on all ? operators, tracing-only logging, strict import
   grouping, mise-based tooling, and 6 custom ast-grep rules. Use when
   writing, reviewing, or modifying .rs files, running builds/tests, or
   creating commits. Complements rust-implementation with project-specific rules.
-license: AGPL-3.0
 ---
 
-# Project Conventions — dtvmgr
+# Project Conventions — chezmage
 
 ## 1. Mandatory Error Context
 
@@ -115,5 +114,5 @@ Enforced by ast-grep rule `no-blocking-in-async`.
 | Topic                    | File                                         |
 | ------------------------ | -------------------------------------------- |
 | ast-grep rules (6 rules) | `references/ast-grep-rules.md`               |
-| Testing patterns         | `references/testing-patterns.md`             |
+| Testing patterns & Miri  | `references/testing-patterns.md`             |
 | Module & project layout  | `references/module-and-project-structure.md` |
