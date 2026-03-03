@@ -26,14 +26,15 @@ User runs `/deps-sync`.
 
 #### 1a. Rust crates from Cargo.toml
 
-Read `/app/Cargo.toml` and extract all entries from `[workspace.dependencies]`.
-For each crate, record:
+Read `/app/Cargo.toml` and extract all entries from `[dependencies]` and
+`[dev-dependencies]`. For each crate, record:
 
-- **name** — crate name (e.g., `ratatui`)
-- **version_spec** — version specifier (e.g., `"0.29"`)
+- **name** — crate name (e.g., `anyhow`)
+- **version_spec** — version specifier (e.g., `"1.0"`)
 - **features** — enabled features list (e.g., `["derive"]`)
+- **optional** — whether the crate is behind a feature flag
 
-Skip internal crates (those with `path = "crates/..."` entries).
+Skip optional crates unless they are enabled by a default or project feature.
 
 #### 1b. Resolved versions from Cargo.lock
 
@@ -111,7 +112,27 @@ investigation.
 `cargo:*` tools: Extract the crate name and use `deps-sync-crates` flow,
 but generate `tool-*` skills since they are CLI tools.
 
-### Step 4: Generate Skills
+### Step 4: Investigate Test Patterns
+
+Follow the investigation flow defined in:
+
+```
+/app/.claude/skills/deps-sync-tests/SKILL.md
+```
+
+Input: Package list from Step 1 (with Miri-impact classification from
+dependencies and dev-dependencies).
+
+This step scans test files and cross-references with detected dependencies
+to generate project-specific Miri compatibility categories and statistics.
+
+### Step 5: Generate Skills
+
+For the test pattern report from Step 4, update
+`/app/.claude/skills/project-conventions/references/testing-patterns.md`:
+
+- Replace the `## Miri Compatibility` section with the generated content
+- Keep all other sections (Unit Test Template, Async Test Template, etc.) unchanged
 
 For each package with post-cutoff changes, generate a skill file.
 
@@ -208,7 +229,7 @@ description: >-
 <common mistakes, edge cases, or "None known">
 ```
 
-### Step 5: Skip Unchanged Packages
+### Step 6: Skip Unchanged Packages
 
 For packages with **no post-cutoff changes** (no releases after May 2025):
 
@@ -220,7 +241,7 @@ For packages that are **already up to date** (existing skill matches version):
 - Do **not** regenerate the skill file
 - Log: `<package> — already up to date (<version>), skipping`
 
-### Step 6: Summary Report
+### Step 7: Summary Report
 
 After all investigations complete, output a summary table:
 
@@ -233,6 +254,7 @@ After all investigations complete, output a summary table:
 | quick-xml | crate | New skill | lib-quick-xml |
 | zizmor | mise | No changes | — |
 | tokio | crate | Skipped (no post-cutoff) | — |
+| Test Patterns | — | Updated (N categories, M ignored) | testing-patterns.md |
 | ... | ... | ... | ... |
 
 Generated: X skills | Updated: Y skills | Skipped: Z packages
@@ -250,8 +272,8 @@ in this file and in `deps-sync-crates/SKILL.md` and `deps-sync-mise/SKILL.md`.
 
 Exclusion is determined dynamically by inspecting `Cargo.toml` and `mise.toml`:
 
-- **Path dependencies** — entries with `path = "..."` in `[workspace.dependencies]` (internal crates)
-- **Dev-only crates** — entries listed under the `# Dev dependencies` comment block in `[workspace.dependencies]`
+- **Dev-only crates** — entries in `[dev-dependencies]` (test-only, not shipped)
+- **Optional crates** — entries with `optional = true` behind feature flags (e.g., `otel`)
 - **Core mise tools** — `core:*` entries detected via `mise registry` (runtimes like node, python)
 
 To investigate dev dependencies, run with explicit override:
