@@ -22,6 +22,9 @@ All tasks use `mise run <task>`:
 | Lint strict           | `mise run clippy:strict`      |
 | AST rules             | `mise run ast-grep`           |
 | Pre-commit (required) | `mise run pre-commit`         |
+| Clean (full)          | `mise run clean`              |
+| Clean (sweep)         | `mise run clean:sweep`        |
+| Clean (cache)         | `mise run clean:cache`        |
 | Coverage              | `mise run coverage`           |
 | Deny (licenses/deps)  | `mise run deny`               |
 | Miri (UB detection)   | `mise run miri`               |
