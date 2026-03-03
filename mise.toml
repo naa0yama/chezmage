@@ -101,9 +101,24 @@ run = "cargo deny check"
 description = "Run Miri to detect undefined behavior"
 run = "cargo +nightly miri test"
 
+[tasks.clean]
+description = "Remove target/ directory"
+run = "cargo clean"
+
+[tasks."clean:sweep"]
+description = "Remove build artifacts older than 1 day"
+run = "cargo sweep --time 1"
+
+[tasks."clean:cache"]
+description = "Show and auto-clean cargo cache"
+run = """
+cargo cache
+cargo cache --autoclean
+"""
+
 [tasks.pre-commit]
 description = "Pre-commit checks (fast)"
-depends = ["fmt:check", "clippy:strict", "ast-grep"]
+depends = ["clean:sweep", "fmt:check", "clippy:strict", "ast-grep"]
 
 [tasks.pre-push]
 description = "Pre-push checks (comprehensive)"
