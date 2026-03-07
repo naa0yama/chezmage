@@ -1,5 +1,34 @@
 # Changelog
 
+## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-07
+### Dependency Updates 👒
+- chore(deps): update taiki-e/install-action action to v2.68.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/45
+- chore(deps): update taiki-e/install-action action to v2.68.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/47
+- chore(deps): update dependency usage to v2.17.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/48
+- chore(deps): update taiki-e/install-action action to v2.68.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/50
+- chore(deps): update taiki-e/install-action action to v2.68.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/51
+- chore(deps): update github/codeql-action action to v4.32.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/52
+- chore(deps): update taiki-e/install-action action to v2.68.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/53
+- chore(deps): update taiki-e/install-action action to v2.68.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/54
+- chore(deps): update taiki-e/install-action action to v2.68.7 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/55
+- chore(deps): update actions/attest-build-provenance action to v3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/13
+- chore(deps): update taiki-e/install-action action to v2.68.8 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/58
+- chore(deps): update jdx/mise-action digest to e79ddf6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/59
+- chore(deps): update rust crate tempfile to v3.26.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/61
+- chore(deps): update taiki-e/install-action action to v2.68.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/65
+- chore(deps): update dependency usage to v2.18.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/64
+- chore(deps): update songmu/tagpr action to v1.17.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/66
+- chore(deps): update taiki-e/install-action action to v2.68.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/68
+- chore(deps): update taiki-e/install-action action to v2.68.11 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/69
+- chore(deps): update taiki-e/install-action action to v2.68.12 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/70
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/71
+- chore(deps): update taiki-e/install-action action to v2.68.14 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/72
+- chore(deps): update taiki-e/install-action action to v2.68.15 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/73
+### Other Changes
+- chore: backport-2 by @naa0yama in https://github.com/naa0yama/chezmage/pull/56
+- feat(deps): cargo target cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/62
+- chore: claude skills update by @naa0yama in https://github.com/naa0yama/chezmage/pull/63
+
 ## [v0.3.0](https://github.com/naa0yama/chezmage/compare/v0.2.8...v0.3.0) - 2026-02-24
 
 ## [v0.2.8](https://github.com/naa0yama/chezmage/compare/v0.2.7...v0.2.8) - 2026-02-24
