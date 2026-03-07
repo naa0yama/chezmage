@@ -1,7 +1,9 @@
 # Changelog
 
 ## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-07
+
 ### Dependency Updates 👒
+
 - chore(deps): update taiki-e/install-action action to v2.68.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/45
 - chore(deps): update taiki-e/install-action action to v2.68.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/47
 - chore(deps): update dependency usage to v2.17.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/48
@@ -24,7 +26,9 @@
 - chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/71
 - chore(deps): update taiki-e/install-action action to v2.68.14 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/72
 - chore(deps): update taiki-e/install-action action to v2.68.15 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/73
+
 ### Other Changes
+
 - chore: backport-2 by @naa0yama in https://github.com/naa0yama/chezmage/pull/56
 - feat(deps): cargo target cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/62
 - chore: claude skills update by @naa0yama in https://github.com/naa0yama/chezmage/pull/63
