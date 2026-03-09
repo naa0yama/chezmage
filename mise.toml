@@ -8,7 +8,7 @@ zizmor = "1.16.0"
 "github:rust-secure-code/cargo-auditable" = "0.7.2"
 "aqua:EmbarkStudios/cargo-deny" = "0.19.0"
 "aqua:watchexec/cargo-watch" = "8.5.3"
-usage = "2.18.1"
+usage = "2.18.2"
 
 [tasks.setup]
 description = "Initial project setup"
