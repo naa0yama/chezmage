@@ -144,10 +144,14 @@ RUN --mount=type=cache,target=/home/cuser/.cache/sccache,sharing=locked,uid=${US
 	cargo modules --version && \
 	cargo sweep --version
 
+RUN printf '%s\n' \
+	'case ":$PATH:" in' \
+	'  *:"$CARGO_HOME/bin":*) ;;' \
+	'  *) export PATH="$CARGO_HOME/bin:$PATH" ;;' \
+	'esac' >> ~/.bashrc
+
 RUN echo "**** Rust bash-completion ****" && \
 	set -euxo pipefail && \
-	echo "export PATH="\$CARGO_HOME/bin:\$PATH"" >> ~/.bashrc && \
-	\
 	mkdir -p                         /home/${USER_NAME}/.local/share/bash-completion/completions && \
 	rustup completions bash cargo  > /home/${USER_NAME}/.local/share/bash-completion/completions/cargo && \
 	rustup completions bash rustup > /home/${USER_NAME}/.local/share/bash-completion/completions/rustup
@@ -206,7 +210,10 @@ if [ ! -f "${HOME}/.local/share/bash-completion/completions/mise" ]; then
 fi
 
 # Claude Code
-export PATH="$HOME/.local/bin:$PATH"
+case ":$PATH:" in
+	*:"$HOME/.local/bin":*) ;;
+	*) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
 alias cc="claude --dangerously-skip-permissions"
 
 _DOC_
