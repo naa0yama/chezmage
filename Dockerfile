@@ -144,12 +144,11 @@ RUN --mount=type=cache,target=/home/cuser/.cache/sccache,sharing=locked,uid=${US
 	cargo modules --version && \
 	cargo sweep --version
 
-RUN cat <<- '__PATH__' >> ~/.bashrc
-	case ":$PATH:" in
-		*:"$CARGO_HOME/bin":*) ;;
-		*) export PATH="$CARGO_HOME/bin:$PATH" ;;
-	esac
-	__PATH__
+RUN printf '%s\n' \
+	'case ":$PATH:" in' \
+	'  *:"$CARGO_HOME/bin":*) ;;' \
+	'  *) export PATH="$CARGO_HOME/bin:$PATH" ;;' \
+	'esac' >> ~/.bashrc
 
 RUN echo "**** Rust bash-completion ****" && \
 	set -euxo pipefail && \
