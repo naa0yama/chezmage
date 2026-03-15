@@ -1,4 +1,10 @@
+[env]
+RUSTC_WRAPPER = "sccache"
+OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318"
+
 [tools]
+"aqua:caddyserver/caddy" = "2.11.2"
+"github:jaegertracing/jaeger" = "2.16.0"
 dprint = "0.51.1"
 actionlint = "1.7.11"
 ghalint = "1.5.3"
@@ -33,22 +39,32 @@ run = "cargo check --all-targets --all-features"
 [tasks.test]
 description = "Run tests"
 run = "cargo test --all-targets"
+[tasks.test.env]
+OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks."test:watch"]
 description = "TDD watch mode"
 run = "cargo watch -x 'test --all-targets'"
+[tasks."test:watch".env]
+OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks."test:doc"]
 description = "Run doc tests"
 run = "cargo test --doc"
+[tasks."test:doc".env]
+OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks.coverage]
 description = "Generate LCOV coverage report"
 run = "cargo llvm-cov --lcov --output-path target/lcov.info"
+[tasks.coverage.env]
+OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks."coverage:html"]
 description = "Generate HTML coverage report and open"
 run = "cargo llvm-cov --html --open"
+[tasks."coverage:html".env]
+OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks.fmt]
 description = "Run all formatters"
@@ -116,9 +132,30 @@ cargo cache
 cargo cache --autoclean
 """
 
+[tasks."test:trace"]
+description = "Run tests with OTel tracing (sends spans to Jaeger)"
+depends = ["jaeger"]
+run = "cargo test --all-targets --features otel"
+
+[tasks.jaeger]
+description = "Start Jaeger collector + Caddy reverse proxy"
+run = """
+pgrep -f 'jaeger --config' > /dev/null || jaeger --config .devcontainer/jaeger-config.yaml &
+caddy start --config .devcontainer/Caddyfile --adapter caddyfile 2>/dev/null || true
+until curl -sf http://localhost:13133/ > /dev/null 2>&1; do sleep 0.2; done
+echo 'Jaeger UI: http://localhost:16686'
+"""
+
+[tasks."jaeger:stop"]
+description = "Stop Jaeger and Caddy"
+run = """
+caddy stop 2>/dev/null || true
+pkill -f 'jaeger --config' 2>/dev/null || true
+"""
+
 [tasks.pre-commit]
 description = "Pre-commit checks (fast)"
-depends = ["clean:sweep", "fmt:check", "clippy:strict", "ast-grep"]
+depends = ["clean:sweep", "fmt:check", "clippy:strict", "ast-grep", "lint:gh"]
 
 [tasks.pre-push]
 description = "Pre-push checks (comprehensive)"

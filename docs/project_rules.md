@@ -262,7 +262,7 @@ project-name/
 
 ## 5. テスト戦略
 
-### 4.1 テストの種類
+### 5.1 テストの種類
 
 #### 単体テスト
 
@@ -316,7 +316,7 @@ fn cli_version_flag() {
 }
 ```
 
-### 4.2 テストユーティリティ
+### 5.2 テストユーティリティ
 
 ```rust
 // テストでのtracing出力モック
@@ -352,9 +352,62 @@ mod tests {
 }
 ```
 
+### 5.3 ブランチカバレッジ
+
+ユニットテストは **100% ブランチカバレッジ** を目標とする。
+テストしないブランチには必ず `// NOTEST` コメントを付ける。
+
+#### NOTEST コメント形式
+
+```rust
+// NOTEST(category): why — what
+```
+
+**カテゴリ**:
+
+| カテゴリ      | 意味                             |
+| ------------- | -------------------------------- |
+| `unreachable` | 型システム上到達不能             |
+| `defensive`   | 防御的コード(将来のバグ防止)     |
+| `infra`       | インフラ依存(OS, ネットワーク等) |
+| `trivial`     | Display impl 等の自明なコード    |
+
+**例**:
+
+```rust
+match kind {
+    Kind::A => handle_a(),
+    Kind::B => handle_b(),
+    // NOTEST(unreachable): kind is validated at parse time — exhaustive match required by compiler
+    Kind::Unknown => unreachable!(),
+}
+```
+
+### 5.4 Miri
+
+Miri (`cargo +nightly miri test`) は未定義動作を検出するために使用する。
+
+#### Miri スキップ方法
+
+テスト単位で `#[cfg_attr(miri, ignore)]` を使用:
+
+```rust
+#[test]
+#[cfg_attr(miri, ignore)] // tempfile I/O unsupported under Miri isolation
+fn test_with_temp_files() { /* ... */ }
+```
+
+#### chezmage の Miri スキップカテゴリ
+
+1. **File system (tempfile)** — `tempfile::tempdir()` やファイル I/O を使用するテスト
+2. **Process spawning (assert_cmd)** — `std::process::Command` でバイナリを実行するテスト
+3. **Environment variables** — `HOME` 環境変数や `std::env::set_var` に依存するテスト
+4. **Platform FFI (libc / windows-sys)** — `mkfifo` や `prctl` 等の FFI を使用するテスト
+5. **Zeroize (custom Drop)** — `zeroize` derive による custom `Drop` のテスト
+
 ## 6. CI/CD
 
-### 5.1 必須チェック(`mise run` 経由)
+### 6.1 必須チェック(`mise run` 経由)
 
 ```bash
 # フォーマットチェック
@@ -374,18 +427,16 @@ mise run build:release   # release build
 
 # カバレッジ
 mise run coverage        # code coverage report
-
-# ビルドチェック
-mise run build:release   # release build
 ```
 
-### 5.2 品質基準
+### 6.2 品質基準
 
 - **Warning一切禁止**
 - **フォーマット違反禁止**
-- **カバレッジ目標**: 80%以上
+- **プロジェクト全体カバレッジ目標**: 80%以上(CI 閾値: 40%)
+- **ユニットテストカバレッジ目標**: 100%(ブランチカバレッジ)
 
-### 5.3 リリースビルド
+### 6.3 リリースビルド
 
 CI のリリースビルドは全ターゲットでネイティブランナーを使用する:
 
@@ -418,7 +469,7 @@ Local と CI で共通のビルドパスを維持し、乖離を防ぐ。
 
 `cargo binstall chezmage` で GitHub Releases からビルド済みバイナリを直接インストール可能。
 
-### 5.4 Git フック(`.githooks/` + `mise`)
+### 6.4 Git フック(`.githooks/` + `mise`)
 
 #### 事前チェック(pre-commit)
 
@@ -434,7 +485,7 @@ mise run pre-commit
 
 ## 7. ドキュメント
 
-### 6.1 コメント規約
+### 7.1 コメント規約
 
 #### ドキュメントコメント
 
@@ -463,7 +514,7 @@ pub fn function(param: Type) -> Result<ReturnType> {
 }
 ````
 
-### 6.2 README必須項目(CLIプロジェクト)
+### 7.2 README必須項目(CLIプロジェクト)
 
 - プロジェクト概要(CLIツールの目的)
 - Dev Container を使ったセットアップ手順
@@ -574,14 +625,14 @@ println!("cargo:rustc-env=GIT_HASH={}", git_hash.trim());
 
 ## 10. パフォーマンス最適化
 
-### 9.1 最適化の原則
+### 10.1 最適化の原則
 
 - **計測なき最適化は悪**
 - まず動くものを作る
 - ボトルネックを`cargo build --timings`で特定
 - 必要な箇所のみ最適化
 
-### 9.2 メモリ管理
+### 10.2 メモリ管理
 
 ```rust
 // 開発速度優先
