@@ -1,78 +1,8 @@
-# Testing Patterns
+# Testing Patterns — Project-Specific
 
-## Unit Test Template
-
-```rust
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-    #![allow(clippy::indexing_slicing)]
-
-    use super::*;
-
-    #[test]
-    fn test_descriptive_name() {
-        // Arrange
-        let input = "value";
-
-        // Act
-        let result = function_under_test(input);
-
-        // Assert
-        assert_eq!(result, expected);
-    }
-}
-```
-
-- `#![allow(clippy::unwrap_used)]` permitted in test modules only.
-- Use Arrange / Act / Assert comments in each test.
-- `use super::*` is the only allowed wildcard import.
-
-## Integration Test Template
-
-File: `tests/<name>.rs`
-
-```rust
-#![allow(clippy::unwrap_used)]
-#![allow(missing_docs)]
-
-use assert_cmd::cargo_bin_cmd;
-use predicates::prelude::predicate;
-use tempfile::TempDir;
-
-#[test]
-#[cfg_attr(miri, ignore)]
-fn test_cli_subcommand() {
-    // Arrange & Act & Assert
-    let mut cmd = cargo_bin_cmd!("chezmage");
-    cmd.arg("--help")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("chezmage"));
-}
-```
-
-- Use `assert_cmd::cargo_bin_cmd!` macro, chain `.assert().success()` / `.failure()`.
-- Use `predicates::str::contains()` for output content checks.
-- Add `#[cfg_attr(miri, ignore)]` — process-spawning tests cannot run under Miri.
-
-## Tempfile Pattern
-
-Use `tempfile::TempDir` for tests requiring file system access:
-
-```rust
-#[test]
-#[cfg_attr(miri, ignore)] // tempfile I/O unsupported under Miri isolation
-fn test_with_temp_files() {
-    // Arrange
-    let dir = tempfile::TempDir::new().unwrap();
-    let config_path = dir.path().join("chezmoi.toml");
-    std::fs::write(&config_path, "[age]\nidentity = \"/tmp/key.txt\"").unwrap();
-
-    // Act & Assert
-    // ...
-}
-```
+> **Shared templates**: See `~/.claude/skills/rust-coding/references/testing-templates.md`
+> for unit test, async test, integration test templates, fixtures, coverage rules,
+> and ETXTBSY workaround.
 
 ## Miri Compatibility
 
@@ -95,7 +25,3 @@ For universal Miri rules and decision flowchart, see
 | Miri-compatible             | 78    |
 | Miri-ignored (per-test)     | 63    |
 | Miri-excluded (crate-level) | 0     |
-
-## Coverage
-
-Target: 80%+ line coverage. Run: `mise run coverage`
