@@ -10,25 +10,28 @@
 
 All tasks use `mise run <task>`:
 
-| Task                  | Command                       |
-| --------------------- | ----------------------------- |
-| Build                 | `mise run build`              |
-| Test                  | `mise run test`               |
-| TDD watch             | `mise run test:watch`         |
-| Doc tests             | `mise run test:doc`           |
-| Format                | `mise run fmt`                |
-| Format check          | `mise run fmt:check`          |
-| Lint (clippy)         | `mise run clippy`             |
-| Lint strict           | `mise run clippy:strict`      |
-| AST rules             | `mise run ast-grep`           |
-| Pre-commit (required) | `mise run pre-commit`         |
-| Clean (full)          | `mise run clean`              |
-| Clean (sweep)         | `mise run clean:sweep`        |
-| Clean (cache)         | `mise run clean:cache`        |
-| Coverage              | `mise run coverage`           |
-| Deny (licenses/deps)  | `mise run deny`               |
-| Miri (UB detection)   | `mise run miri`               |
-| Build (OTel)          | `cargo build --features otel` |
+| Task                  | Command                             |
+| --------------------- | ----------------------------------- |
+| Build                 | `mise run build`                    |
+| Test                  | `mise run test`                     |
+| TDD watch             | `mise run test:watch`               |
+| Doc tests             | `mise run test:doc`                 |
+| Format                | `mise run fmt`                      |
+| Format check          | `mise run fmt:check`                |
+| Lint (clippy)         | `mise run clippy`                   |
+| Lint strict           | `mise run clippy:strict`            |
+| AST rules             | `mise run ast-grep`                 |
+| Pre-commit (required) | `mise run pre-commit`               |
+| Clean (full)          | `mise run clean`                    |
+| Clean (sweep)         | `mise run clean:sweep`              |
+| Clean (cache)         | `mise run clean:cache`              |
+| Coverage              | `mise run coverage`                 |
+| Deny (licenses/deps)  | `mise run deny`                     |
+| Miri (UB detection)   | `mise run miri`                     |
+| Build (OTel)          | `mise run build -- --features otel` |
+| Trace test            | `mise run test:trace`               |
+| Jaeger (start)        | `mise run jaeger`                   |
+| Jaeger (stop)         | `mise run jaeger:stop`              |
 
 ## Commit Convention
 
@@ -53,10 +56,18 @@ Allowed types: feat, update, fix, style, refactor, docs, perf, test, build, ci, 
 
 - **Imports**: All `use` statements at file top level, grouped: `std` -> external crates -> `crate`/`super`. No wildcards (`*`). Aliases (`as`) permitted for name conflicts and re-exports.
 - **Error handling**: Never use bare `?`. Always add `.context()` or `.with_context()`.
-- **Logging**: Use `tracing` crate, not `println!` / `dbg!`. For container/OTel support, build with `--features otel` and set `OTEL_EXPORTER_OTLP_ENDPOINT` env var.
-- **Tests**: Arrange / Act / Assert pattern. Unit tests in `#[cfg(test)] mod tests`, integration tests in `tests/`. `#![allow(clippy::unwrap_used)]` is permitted in test code.
+- **Logging**: Use `tracing` crate, not `println!` / `dbg!`. For container/OTel support, build with `--features otel` and set `OTEL_EXPORTER_OTLP_ENDPOINT` env var. Run `mise run jaeger` for local trace collection.
+- **Tests**: Arrange / Act / Assert pattern. Unit tests in `#[cfg(test)] mod tests`, integration tests in `tests/`. `#![allow(clippy::unwrap_used)]` is permitted in test code. Unit tests target 100% branch coverage; untested branches require `// NOTEST(category): why — what`.
 - See [docs/project_rules.md](./docs/project_rules.md) for full details.
 
 ## Skill Maintenance
 
-- When modifying coding rules, workflow, or project conventions in `CLAUDE.md` or `docs/project_rules.md`, also update the corresponding `.claude/skills/` files to keep them in sync.
+Skills are organized in a two-tier hierarchy:
+
+- **Global** (`~/.claude/skills/rust-*`): Shared across all Rust projects. Contains coding workflows, QA, review, docs, implementation guides, and dep-sync agents.
+- **Project** (`.claude/skills/project-conventions/`): chezmage-specific overrides — commands table, OTel config, Miri skip categories, project source layout.
+
+When modifying coding rules, workflow, or project conventions:
+
+- If the change is chezmage-specific, update `.claude/skills/project-conventions/` and optionally `CLAUDE.md` / `docs/project_rules.md`.
+- If the change applies to all Rust projects, update the corresponding `~/.claude/skills/rust-*` files.
