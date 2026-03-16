@@ -1,4 +1,15 @@
 //! Shim mode: deliver age key from env var to the real `age` binary via pipe fd.
+//!
+//! # Security
+//!
+//! Tracing MUST NOT be initialized in shim mode for two reasons:
+//!
+//! 1. **Stdout contamination** — chezmoi captures stderr as part of the
+//!    decrypted plaintext, so any tracing output would corrupt the result.
+//! 2. **Sensitive data in spans** — several `tracing::debug!` calls below
+//!    log `args = ?args` (full CLI argument vectors) which may contain
+//!    identity file paths. These calls are safe only because they emit to
+//!    a no-op subscriber when tracing is not initialized.
 
 use std::io::Write;
 #[cfg(unix)]
@@ -51,6 +62,8 @@ struct NamedPipe {
 pub fn run(args: &[String]) -> Result<()> {
     let age_key = std::env::var(ENV_AGE_KEY).ok().filter(|k| !k.is_empty());
 
+    // SECURITY: safe only because tracing is not initialized in shim mode.
+    // If tracing were active, `args` could leak identity file paths via OTel.
     tracing::debug!(
         args = ?args,
         has_age_key = age_key.is_some(),
@@ -95,6 +108,7 @@ fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
 
     let (has_identity, new_args) = rewrite_identity_args(args, &identity_source);
 
+    // SECURITY: safe only because tracing is not initialized in shim mode.
     tracing::debug!(has_identity, args = ?new_args, "rewrote identity args");
 
     if !has_identity {
@@ -107,6 +121,7 @@ fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
 
     let age = find_real_age()?;
 
+    // SECURITY: safe only because tracing is not initialized in shim mode.
     tracing::debug!(age = %age.display(), args = ?new_args, "spawning age");
 
     let mut child = Command::new(&age)
@@ -138,6 +153,7 @@ fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
 
     let (has_identity, new_args) = rewrite_identity_args(args, &pipe_path);
 
+    // SECURITY: safe only because tracing is not initialized in shim mode.
     tracing::debug!(has_identity, args = ?new_args, "rewrote identity args");
 
     if !has_identity {
@@ -157,6 +173,7 @@ fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
     let key_owned = String::from(age_key);
     let writer = std::thread::spawn(move || serve_key_on_pipe(pipe, &key_owned));
 
+    // SECURITY: safe only because tracing is not initialized in shim mode.
     tracing::debug!(age = %age.display(), args = ?new_args, "spawning age");
 
     let mut child = Command::new(&age)
