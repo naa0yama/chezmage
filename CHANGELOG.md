@@ -1,11 +1,17 @@
 # Changelog
 
 ## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-16
+
 ### Documentation 🗒️
+
 - refactor(skills): apply boilerplate-rust template to skills hierarchy by @naa0yama in https://github.com/naa0yama/chezmage/pull/91
+
 ### Dependency Updates 📦
+
 - chore(deps): update rust crate tempfile to v3.26.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/61
+
 ### Development Environment 🔧
+
 - chore(deps): update taiki-e/install-action action to v2.68.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/45
 - chore(deps): update taiki-e/install-action action to v2.68.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/47
 - chore(deps): update dependency usage to v2.17.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/48
@@ -54,7 +60,9 @@
 - fix(ci): fix release build and changelog label categorisation by @naa0yama in https://github.com/naa0yama/chezmage/pull/100
 - fix(ci): allow tagpr workflow to run on workflow_dispatch by @naa0yama in https://github.com/naa0yama/chezmage/pull/102
 - fix(ci): upload assets to tagpr-created release instead of creating a new one by @naa0yama in https://github.com/naa0yama/chezmage/pull/104
+
 ### Other Changes
+
 - chore: claude skills update by @naa0yama in https://github.com/naa0yama/chezmage/pull/63
 - Change command to postVersionCommand in .tagpr by @naa0yama in https://github.com/naa0yama/chezmage/pull/77
 - Update postStartCommand.sh by @naa0yama in https://github.com/naa0yama/chezmage/pull/92
