@@ -25,7 +25,7 @@
 		"description": "Changes to core application code"
 	},
 	{
-		"name": "github_actions",
+		"name": "github-actions",
 		"color": "ffd412",
 		"description": "Changes to GitHub Actions workflows"
 	},
@@ -93,6 +93,11 @@
 		"name": "renovate",
 		"color": "027fa0",
 		"description": "Dependency update by Renovate"
+	},
+	{
+		"name": "renovate-config",
+		"color": "027fa0",
+		"description": "Changes to Renovate configuration"
 	},
 	{
 		"name": "datasource:crate",
@@ -168,11 +173,6 @@
 		"name": "manager:regex",
 		"color": "8b5cf6",
 		"description": "Manager: regex"
-	},
-	{
-		"name": "managers:dockerfile",
-		"color": "8b5cf6",
-		"description": "Manager: Dockerfile (legacy)"
 	},
 	{
 		"name": "update-major",

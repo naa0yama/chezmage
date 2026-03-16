@@ -6,7 +6,7 @@ core:
       - any-glob-to-any-file:
           - "Dockerfile*"
 
-github_actions:
+github-actions:
   - changed-files:
       - any-glob-to-any-file: ".github/**"
 
@@ -21,6 +21,10 @@ tests:
       - any-glob-to-any-file: "tests/**"
 
 renovate:
+  - changed-files:
+      - any-glob-to-any-file: "renovate.json"
+
+renovate-config:
   - changed-files:
       - any-glob-to-any-file: "renovate.json"
 

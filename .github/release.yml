@@ -15,8 +15,24 @@ changelog:
     - title: "Dependency Updates 📦"
       labels: ["renovate"]
       exclude:
-        labels: ["mise", "github-actions", "docker", "regex", "renovate-config"]
+        labels: [
+          "manager:mise",
+          "manager:github-actions",
+          "manager:dockerfile",
+          "manager:regex",
+          "github-actions",
+          "core",
+          "renovate-config",
+        ]
     - title: "Development Environment 🔧"
-      labels: ["mise", "github-actions", "docker", "regex", "renovate-config"]
+      labels: [
+        "manager:mise",
+        "manager:github-actions",
+        "manager:dockerfile",
+        "manager:regex",
+        "github-actions",
+        "core",
+        "renovate-config",
+      ]
     - title: Other Changes
       labels: ["*"]

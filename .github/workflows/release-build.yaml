@@ -56,7 +56,7 @@ jobs:
         id: versions
         shell: bash
         run: |
-          auditable_version=$(grep -E '"cargo:cargo-auditable"' mise.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          auditable_version=$(grep -E 'cargo-auditable' mise.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
           package_name=$(grep -E '^\[package\]' -A 10 Cargo.toml | grep -E '^name = "' | sed -E 's/name = "(.*)"/\1/')
 
           if grep -q '^\[\[bin\]\]' Cargo.toml; then
