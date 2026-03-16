@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://www.schemastore.org/github-action.json
-name: "Create Release"
-description: "Download artifacts, prepare release assets, and create GitHub release"
+name: "Upload Release Assets"
+description: "Download build artifacts and upload them to an existing GitHub release created by tagpr"
 inputs:
   tag:
     description: "Release tag"
@@ -9,19 +9,11 @@ inputs:
     description: "GitHub token"
     required: true
     default: ${{ github.token }}
-  draft:
-    description: "Create draft release"
-    required: false
-    default: "false"
-  prerelease:
-    description: "Mark as prerelease"
-    required: false
-    default: "false"
 
 outputs:
   url:
-    description: "URL of the created release"
-    value: ${{ steps.create-release.outputs.url }}
+    description: "URL of the release"
+    value: ${{ steps.upload-assets.outputs.url }}
 
 runs:
   using: "composite"
@@ -67,7 +59,7 @@ runs:
       env:
         TAG: ${{ inputs.tag }}
       run: |
-        set -euxo pipefail
+        set -euo pipefail
         mkdir -p release-assets
         assets_dir="$(pwd)/release-assets"
 
@@ -129,123 +121,34 @@ runs:
         echo "SHA256 checksums:"
         cat SHA256SUMS
 
-    - name: Generate release notes
+    - name: Upload assets to release
       shell: bash
-      id: release-notes
-      env:
-        TAG: ${{ inputs.tag }}
-      run: |
-        set -euo pipefail
-
-        # Create release notes with artifact information
-        cat > release_notes.md << EOF
-        ## 🚀 Release ${TAG}
-
-        This release includes pre-built binaries for multiple platforms:
-
-        ### 📦 Available Downloads
-
-        | Platform | Architecture | Download |
-        |----------|--------------|----------|
-        EOF
-
-        # Add download links for each asset
-        for asset in release-assets/*; do
-          if [ -f "$asset" ]; then
-            filename=$(basename "$asset")
-            case "$filename" in
-              *darwin*)
-                platform="macOS"
-                arch="ARM64 (Apple Silicon)"
-                ;;
-              *linux-gnu*x86_64*)
-                platform="Linux"
-                arch="x86_64 (GNU)"
-                ;;
-              *linux-gnu*aarch64*)
-                platform="Linux"
-                arch="ARM64 (GNU)"
-                ;;
-              *windows-msvc*)
-                platform="Windows"
-                arch="x86_64 (MSVC)"
-                ;;
-              *windows-gnu*)
-                platform="Windows"
-                arch="x86_64 (GNU)"
-                ;;
-              *)
-                platform="Other"
-                arch="Unknown"
-                ;;
-            esac
-            echo "| ${platform} | ${arch} | \`${filename}\` |" >> release_notes.md
-          fi
-        done
-
-        cat >> release_notes.md << 'EOF'
-
-        ### 🛠️ Build Information
-
-        - All targets: native `cargo auditable build` on per-platform runners
-        - Optimization: Release profile with symbol stripping
-
-        ---
-
-        🤖 *This release was automatically built and published by GitHub Actions*
-        EOF
-
-        echo "Generated release notes:"
-        cat release_notes.md
-
-    - name: Create GitHub Release
-      shell: bash
-      id: create-release
+      id: upload-assets
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         TAG: ${{ inputs.tag }}
-        DRAFT: ${{ inputs.draft }}
-        PRERELEASE: ${{ inputs.prerelease }}
       run: |
         set -euo pipefail
         shopt -s failglob
 
-        args=(
-          "${TAG}"
-          --verify-tag
-          --notes-file release_notes.md
-          --generate-notes
-          --title "${TAG}"
-        )
+        # Verify the release exists (tagpr creates it synchronously before this workflow runs)
+        release_url="$(gh release view "${TAG}" --json url --jq '.url')"
+        echo "Release found: ${release_url}"
 
-        if [ "${DRAFT}" = "true" ]; then
-          args+=(--draft)
-        fi
-
-        if [ "${PRERELEASE}" = "true" ]; then
-          args+=(--prerelease)
-        fi
-
-        args+=(release-assets/*)
-
-        release_url="$(gh release create "${args[@]}")"
+        gh release upload "${TAG}" release-assets/* --clobber
         echo "url=${release_url}" >> "$GITHUB_OUTPUT"
 
     - name: Release summary
       shell: bash
       env:
         TAG: ${{ inputs.tag }}
-        RELEASE_URL: ${{ steps.create-release.outputs.url }}
-        DRAFT: ${{ inputs.draft }}
-        PRERELEASE: ${{ inputs.prerelease }}
+        RELEASE_URL: ${{ steps.upload-assets.outputs.url }}
       run: |
-        printf "✅ Release %s created successfully!\n" "${TAG}"
-        echo "📦 Assets uploaded: $(ls -1 release-assets/ | wc -l)"
-        printf "🔗 Release URL: %s\n" "${RELEASE_URL}"
+        printf "Assets uploaded to release %s\n" "${TAG}"
+        echo "Assets: $(ls -1 release-assets/ | wc -l)"
+        printf "Release URL: %s\n" "${RELEASE_URL}"
 
-        echo "## 📋 Release Summary" >> "$GITHUB_STEP_SUMMARY"
+        echo "## Release Summary" >> "$GITHUB_STEP_SUMMARY"
         printf -- "- **Tag**: %s\n" "${TAG}" >> "$GITHUB_STEP_SUMMARY"
         echo "- **Assets**: $(ls -1 release-assets/ | wc -l)" >> "$GITHUB_STEP_SUMMARY"
         printf -- "- **Release URL**: %s\n" "${RELEASE_URL}" >> "$GITHUB_STEP_SUMMARY"
-        printf -- "- **Draft**: %s\n" "${DRAFT}" >> "$GITHUB_STEP_SUMMARY"
-        printf -- "- **Prerelease**: %s\n" "${PRERELEASE}" >> "$GITHUB_STEP_SUMMARY"

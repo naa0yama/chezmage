@@ -1,9 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Release
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
   workflow_call:
     inputs:
       tag:
@@ -35,7 +32,7 @@ jobs:
       tag: ${{ inputs.tag || github.ref_name }}
 
   release:
-    name: Create Release
+    name: Upload Release Assets
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -49,14 +46,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Create GitHub Release
-        uses: ./.github/actions/create-release
+      - name: Upload Release Assets
+        uses: ./.github/actions/upload-release-assets
         id: create-release
         with:
           tag: ${{ inputs.tag || github.ref_name }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          draft: false
-          prerelease: ${{ contains(inputs.tag || github.ref_name, 'alpha') || contains(inputs.tag || github.ref_name, 'beta') || contains(inputs.tag || github.ref_name, 'rc') }}
 
       - name: Notify on failure
         if: failure()
