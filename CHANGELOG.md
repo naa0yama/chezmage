@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.3.2](https://github.com/naa0yama/chezmage/compare/v0.3.1...v0.3.2) - 2026-03-16
+### Development Environment 🔧
+- fix(ci): fix release build and changelog label categorisation by @naa0yama in https://github.com/naa0yama/chezmage/pull/100
+
 ## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-16
 
 ### Documentation 🗒️
