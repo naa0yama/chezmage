@@ -53,10 +53,20 @@
 			],
 			"settings": {
 				"window.title": "${localWorkspaceFolderBasename}${separator}${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}",
-				"dprint.path": "/home/cuser/.local/share/mise/shims/dprint"
+				"dprint.path": "/home/cuser/.local/share/mise/shims/dprint",
+				"remote.autoForwardPorts": true,
+				"remote.autoForwardPortsSource": "process"
 			}
 		}
 	},
+	"portsAttributes": {
+		"16686": {
+			"onAutoForward": "notify",
+			"label": "Jaeger UI",
+			"requireLocalPort": false
+		}
+	},
+	"otherPortsAttributes": { "onAutoForward": "ignore" },
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	"remoteUser": "cuser",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=delegated",

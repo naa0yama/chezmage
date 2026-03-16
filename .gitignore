@@ -40,4 +40,7 @@ tmp/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Generated Jaeger UI config
+.devcontainer/.jaeger-ui-generated.js
+
 # Under the unknown

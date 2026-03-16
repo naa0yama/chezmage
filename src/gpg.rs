@@ -53,9 +53,13 @@ pub fn decrypt(path: &Path) -> Result<String> {
     if !output.stderr.is_empty() {
         let stderr_text = String::from_utf8_lossy(&output.stderr);
         if output.status.success() {
-            tracing::debug!(path = %path.display(), stderr = %stderr_text.trim_end(), "gpg stderr");
+            // SECURITY: GPG stderr may contain fingerprints, key IDs, or
+            // email addresses. Log content only at trace level to prevent
+            // leakage via OTel spans.
+            tracing::trace!(path = %path.display(), stderr = %stderr_text.trim_end(), "gpg stderr");
         } else {
-            tracing::warn!(path = %path.display(), stderr = %stderr_text.trim_end(), "gpg stderr");
+            tracing::warn!(path = %path.display(), "gpg --decrypt failed (see RUST_LOG=trace for stderr)");
+            tracing::trace!(path = %path.display(), stderr = %stderr_text.trim_end(), "gpg stderr");
         }
     }
 

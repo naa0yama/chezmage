@@ -140,6 +140,7 @@ run = "cargo test --all-targets --features otel"
 [tasks.jaeger]
 description = "Start Jaeger collector + Caddy reverse proxy"
 run = """
+.devcontainer/generate-jaeger-ui-config.sh
 pgrep -f 'jaeger --config' > /dev/null || jaeger --config .devcontainer/jaeger-config.yaml &
 caddy start --config .devcontainer/Caddyfile --adapter caddyfile 2>/dev/null || true
 until curl -sf http://localhost:13133/ > /dev/null 2>&1; do sleep 0.2; done

@@ -118,7 +118,7 @@ pub fn run() -> Result<()> {
         env::set_var(ENV_AGE_KEY, &combined);
     }
 
-    tracing::info!(
+    tracing::debug!(
         identity_count = parts.len(),
         secret_key_count = total_secret_keys,
         "loaded identity files"

@@ -109,6 +109,9 @@ fn init_tracing() {
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
         let fmt_layer = tracing_subscriber::fmt::layer();
 
+        // SECURITY: Do not add process.command_args or process.environment
+        // resource detectors — they may expose identity file paths or the
+        // CHEZMOI_AGE_KEY environment variable to the OTel collector.
         let otel_layer = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
             .ok()
             .and_then(|_| {
