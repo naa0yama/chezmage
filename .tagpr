@@ -51,5 +51,5 @@
 	vPrefix = true
 	versionFile = "Cargo.toml"
 	changelog = true
-	postVersionCommand = "cargo update --workspace"
+	postVersionCommand = "cargo generate-lockfile"
 	template = ".github/tagpr-template.md"
