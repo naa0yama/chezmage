@@ -22,9 +22,6 @@ outputs:
   url:
     description: "URL of the created release"
     value: ${{ steps.create-release.outputs.url }}
-  upload_url:
-    description: "Upload URL for additional assets"
-    value: ${{ steps.create-release.outputs.upload_url }}
 
 runs:
   using: "composite"
@@ -202,18 +199,37 @@ runs:
         cat release_notes.md
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+      shell: bash
       id: create-release
-      with:
-        tag_name: ${{ inputs.tag }}
-        body_path: release_notes.md
-        files: release-assets/*
-        draft: ${{ inputs.draft == 'true' }}
-        prerelease: ${{ inputs.prerelease == 'true' }}
-        fail_on_unmatched_files: true
-        generate_release_notes: true
       env:
-        GITHUB_TOKEN: ${{ inputs.github_token }}
+        GH_TOKEN: ${{ inputs.github_token }}
+        TAG: ${{ inputs.tag }}
+        DRAFT: ${{ inputs.draft }}
+        PRERELEASE: ${{ inputs.prerelease }}
+      run: |
+        set -euo pipefail
+        shopt -s failglob
+
+        args=(
+          "${TAG}"
+          --verify-tag
+          --notes-file release_notes.md
+          --generate-notes
+          --title "${TAG}"
+        )
+
+        if [ "${DRAFT}" = "true" ]; then
+          args+=(--draft)
+        fi
+
+        if [ "${PRERELEASE}" = "true" ]; then
+          args+=(--prerelease)
+        fi
+
+        args+=(release-assets/*)
+
+        release_url="$(gh release create "${args[@]}")"
+        echo "url=${release_url}" >> "$GITHUB_OUTPUT"
 
     - name: Release summary
       shell: bash
