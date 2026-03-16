@@ -1,9 +1,13 @@
 # Changelog
 
 ## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-16
+
 ### Documentation 🗒️
+
 - refactor(skills): apply boilerplate-rust template to skills hierarchy by @naa0yama in https://github.com/naa0yama/chezmage/pull/91
+
 ### Dependency Updates 📦
+
 - chore(deps): update taiki-e/install-action action to v2.68.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/45
 - chore(deps): update taiki-e/install-action action to v2.68.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/47
 - chore(deps): update dependency usage to v2.17.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/48
@@ -47,7 +51,9 @@
 - chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/94
 - chore(deps): update taiki-e/install-action action to v2.68.25 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/95
 - chore(deps): update zizmorcore/zizmor-action action to v0.5.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/96
+
 ### Other Changes
+
 - chore: backport-2 by @naa0yama in https://github.com/naa0yama/chezmage/pull/56
 - feat(deps): cargo target cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/62
 - chore: claude skills update by @naa0yama in https://github.com/naa0yama/chezmage/pull/63
