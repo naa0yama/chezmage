@@ -12,7 +12,11 @@ changelog:
       labels: ["bug"]
     - title: Documentation 🗒️
       labels: ["documentation"]
-    - title: Dependency Updates 👒
+    - title: "Dependency Updates 📦"
       labels: ["renovate"]
+      exclude:
+        labels: ["mise", "github-actions", "docker", "regex", "renovate-config"]
+    - title: "Development Environment 🔧"
+      labels: ["mise", "github-actions", "docker", "regex", "renovate-config"]
     - title: Other Changes
       labels: ["*"]
