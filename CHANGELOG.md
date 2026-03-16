@@ -1,5 +1,70 @@
 # Changelog
 
+## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-16
+
+### Documentation 🗒️
+
+- refactor(skills): apply boilerplate-rust template to skills hierarchy by @naa0yama in https://github.com/naa0yama/chezmage/pull/91
+
+### Dependency Updates 📦
+
+- chore(deps): update taiki-e/install-action action to v2.68.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/45
+- chore(deps): update taiki-e/install-action action to v2.68.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/47
+- chore(deps): update dependency usage to v2.17.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/48
+- chore(deps): update taiki-e/install-action action to v2.68.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/50
+- chore(deps): update taiki-e/install-action action to v2.68.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/51
+- chore(deps): update github/codeql-action action to v4.32.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/52
+- chore(deps): update taiki-e/install-action action to v2.68.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/53
+- chore(deps): update taiki-e/install-action action to v2.68.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/54
+- chore(deps): update taiki-e/install-action action to v2.68.7 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/55
+- chore(deps): update actions/attest-build-provenance action to v3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/13
+- chore(deps): update taiki-e/install-action action to v2.68.8 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/58
+- chore(deps): update jdx/mise-action digest to e79ddf6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/59
+- chore(deps): update rust crate tempfile to v3.26.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/61
+- chore(deps): update taiki-e/install-action action to v2.68.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/65
+- chore(deps): update dependency usage to v2.18.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/64
+- chore(deps): update songmu/tagpr action to v1.17.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/66
+- chore(deps): update taiki-e/install-action action to v2.68.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/68
+- chore(deps): update taiki-e/install-action action to v2.68.11 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/69
+- chore(deps): update taiki-e/install-action action to v2.68.12 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/70
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/71
+- chore(deps): update taiki-e/install-action action to v2.68.14 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/72
+- chore(deps): update taiki-e/install-action action to v2.68.15 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/73
+- chore(deps): update actions-rust-lang/setup-rust-toolchain action to v1.15.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/74
+- chore(deps): update dependency usage to v2.18.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/75
+- chore(deps): update taiki-e/install-action action to v2.68.16 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/76
+- chore(deps): update github/codeql-action action to v4.32.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/78
+- chore(deps): update taiki-e/install-action action to v2.68.17 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/79
+- chore(deps): update dependency github:rust-secure-code/cargo-auditable to v0.7.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/80
+- chore(deps): update taiki-e/install-action action to v2.68.18 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/81
+- chore(deps): update rust docker tag to v1.93.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/82
+- chore(deps): update taiki-e/install-action action to v2.68.19 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/85
+- chore(deps): update github/codeql-action action to v4.32.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/86
+- chore(deps): update taiki-e/install-action action to v2.68.20 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/87
+- chore(deps): update taiki-e/install-action action to v2.68.21 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/88
+- chore(deps): update taiki-e/install-action action to v2.68.22 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/89
+- chore(deps): update taiki-e/install-action action to v2.68.23 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/90
+- chore(deps): update dependency github:rust-secure-code/cargo-auditable to v0.7.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/83
+- chore(deps): update dependency aqua:ast-grep/ast-grep to v0.41.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/57
+- chore(deps): update dependency dprint to v0.52.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/67
+- chore(deps): update all action update (major) by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/60
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/94
+- chore(deps): update taiki-e/install-action action to v2.68.25 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/95
+- chore(deps): update zizmorcore/zizmor-action action to v0.5.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/96
+
+### Other Changes
+
+- chore: backport-2 by @naa0yama in https://github.com/naa0yama/chezmage/pull/56
+- feat(deps): cargo target cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/62
+- chore: claude skills update by @naa0yama in https://github.com/naa0yama/chezmage/pull/63
+- Change command to postVersionCommand in .tagpr by @naa0yama in https://github.com/naa0yama/chezmage/pull/77
+- Update PATH export logic in Dockerfile by @naa0yama in https://github.com/naa0yama/chezmage/pull/84
+- Update postStartCommand.sh by @naa0yama in https://github.com/naa0yama/chezmage/pull/92
+- Update initializeCommand.sh by @naa0yama in https://github.com/naa0yama/chezmage/pull/93
+- fix(otel): harden tracing to prevent sensitive data leakage by @naa0yama in https://github.com/naa0yama/chezmage/pull/97
+- fix(ci): replace softprops/action-gh-release with gh CLI by @naa0yama in https://github.com/naa0yama/chezmage/pull/98
+- Update release.yml by @naa0yama in https://github.com/naa0yama/chezmage/pull/99
+
 ## [v0.3.0](https://github.com/naa0yama/chezmage/compare/v0.2.8...v0.3.0) - 2026-02-24
 
 ## [v0.2.8](https://github.com/naa0yama/chezmage/compare/v0.2.7...v0.2.8) - 2026-02-24
