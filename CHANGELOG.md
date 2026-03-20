@@ -1,20 +1,28 @@
 # Changelog
 
 ## [v0.3.2](https://github.com/naa0yama/chezmage/compare/v0.3.1...v0.3.2) - 2026-03-20
+
 ### Documentation 🗒️
+
 - chore: backport boilerplate changes by @naa0yama in https://github.com/naa0yama/chezmage/pull/115
+
 ### Dependency Updates 📦
+
 - chore(deps): update rust crate assert_cmd to v2.2.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/111
 - chore(deps): update rust crate tempfile to v3.27.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/112
 - chore(deps): update rust crate libc to v0.2.183 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/117
 - chore(deps): update rust crate toml to v1.0.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/118
 - chore(deps): update rust crate clap to v4.6.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/119
+
 ### Development Environment 🔧
+
 - chore(deps): update dependency aqua:ast-grep/ast-grep to v0.41.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/108
 - chore(deps): update taiki-e/install-action action to v2.68.26 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/110
 - chore(deps): update actions/download-artifact action to v8.0.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/113
 - chore(deps): update taiki-e/install-action action to v2.68.27 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/114
+
 ### Other Changes
+
 - Update .tagpr by @naa0yama in https://github.com/naa0yama/chezmage/pull/106
 
 ## [v0.3.1](https://github.com/naa0yama/chezmage/compare/v0.3.0...v0.3.1) - 2026-03-16
