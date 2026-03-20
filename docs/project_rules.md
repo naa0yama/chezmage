@@ -354,56 +354,35 @@ mod tests {
 
 ### 5.3 ブランチカバレッジ
 
-ユニットテストは **100% ブランチカバレッジ** を目標とする。
-テストしないブランチには必ず `// NOTEST` コメントを付ける。
+ユニットテストは **100% ブランチカバレッジ** を目標とする。TDD の RED フェーズで以下の手順を行う:
 
-#### NOTEST コメント形式
+1. 実装対象の関数/モジュールの分岐構造を列挙する(`if`, `match`, `?`, `Option`, `Result`)
+2. 各分岐に対するテストケースを設計する
+3. テスト不可能な分岐には `NOTEST` コメントを実装コード側に追加する
+
+#### `NOTEST` コメントフォーマット
 
 ```rust
-// NOTEST(category): why — what
+// NOTEST(category): <why> — <what the branch does>
 ```
 
-**カテゴリ**:
+| category      | 用途                                                |
+| ------------- | --------------------------------------------------- |
+| `unreachable` | 型/ロジック上到達不可能だがコンパイラが検出できない |
+| `io`          | ファイルシステム・ネットワーク等の外部 I/O 依存     |
+| `ffi`         | FFI/C バインディング経由でテスト環境では実行不可    |
+| `env`         | 環境変数やランタイム環境に依存                      |
+| `infra`       | テストインフラの制約(mock 困難、外部サービス依存等) |
 
-| カテゴリ      | 意味                             |
-| ------------- | -------------------------------- |
-| `unreachable` | 型システム上到達不能             |
-| `defensive`   | 防御的コード(将来のバグ防止)     |
-| `infra`       | インフラ依存(OS, ネットワーク等) |
-| `trivial`     | Display impl 等の自明なコード    |
-
-**例**:
+#### コード例
 
 ```rust
-match kind {
-    Kind::A => handle_a(),
-    Kind::B => handle_b(),
-    // NOTEST(unreachable): kind is validated at parse time — exhaustive match required by compiler
-    Kind::Unknown => unreachable!(),
+match result {
+    Ok(v) => v,
+    // NOTEST(unreachable): validated upstream — error on XML parse failure
+    Err(_) => return Err(MyError::ParseFailed),
 }
 ```
-
-### 5.4 Miri
-
-Miri (`cargo +nightly miri test`) は未定義動作を検出するために使用する。
-
-#### Miri スキップ方法
-
-テスト単位で `#[cfg_attr(miri, ignore)]` を使用:
-
-```rust
-#[test]
-#[cfg_attr(miri, ignore)] // tempfile I/O unsupported under Miri isolation
-fn test_with_temp_files() { /* ... */ }
-```
-
-#### chezmage の Miri スキップカテゴリ
-
-1. **File system (tempfile)** — `tempfile::tempdir()` やファイル I/O を使用するテスト
-2. **Process spawning (assert_cmd)** — `std::process::Command` でバイナリを実行するテスト
-3. **Environment variables** — `HOME` 環境変数や `std::env::set_var` に依存するテスト
-4. **Platform FFI (libc / windows-sys)** — `mkfifo` や `prctl` 等の FFI を使用するテスト
-5. **Zeroize (custom Drop)** — `zeroize` derive による custom `Drop` のテスト
 
 ## 6. CI/CD
 
@@ -433,7 +412,7 @@ mise run coverage        # code coverage report
 
 - **Warning一切禁止**
 - **フォーマット違反禁止**
-- **プロジェクト全体カバレッジ目標**: 80%以上(CI 閾値: 40%)
+- **プロジェクト全体カバレッジ目標**: 80%以上(CI 閾値: 75%)
 - **ユニットテストカバレッジ目標**: 100%(ブランチカバレッジ)
 
 ### 6.3 リリースビルド
@@ -583,18 +562,20 @@ cargo build --release
 cargo build --release --features otel
 ```
 
-**コンテナ実行時の環境変数:**
+**実行時の環境変数:**
 
-| 環境変数                      | 必須 | 説明                                                        |
-| ----------------------------- | ---- | ----------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Yes  | OTel Collector エンドポイント (例: `http://localhost:4318`) |
-| `OTEL_SERVICE_NAME`           | No   | サービス名 (デフォルト: パッケージ名)                       |
-| `RUST_LOG`                    | No   | ログレベル (デフォルト: `info`)                             |
+| 環境変数                      | 必須 | 説明                                                                    |
+| ----------------------------- | ---- | ----------------------------------------------------------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Yes  | OTel Collector エンドポイント (例: `http://localhost:5080/api/default`) |
+| `OTEL_EXPORTER_OTLP_HEADERS`  | No   | OTLP エクスポータに付加する HTTP ヘッダ (例: `Authorization=Basic ...`) |
+| `OTEL_SERVICE_NAME`           | No   | サービス名 (デフォルト: パッケージ名)                                   |
+| `RUST_LOG`                    | No   | ログレベル (デフォルト: `info`)                                         |
 
 **注意:**
 
 - アプリケーションコードの `tracing::info!` 等は変更不要
 - `otel` feature 無効時は OTel 依存が一切含まれず、従来のバイナリと同一
+- テストタスクでは `OTEL_EXPORTER_OTLP_ENDPOINT=""` が自動設定される(OTel パニック防止)
 
 ### 9.2 デバッグ手法
 

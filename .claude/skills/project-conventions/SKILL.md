@@ -24,6 +24,7 @@ Never run `cargo` directly. All tasks go through `mise run`:
 | Test            | `mise run test`                     |
 | TDD watch       | `mise run test:watch`               |
 | Doc tests       | `mise run test:doc`                 |
+| Trace test      | `mise run test:trace`               |
 | Format          | `mise run fmt`                      |
 | Format check    | `mise run fmt:check`                |
 | Lint (clippy)   | `mise run clippy`                   |
@@ -33,16 +34,15 @@ Never run `cargo` directly. All tasks go through `mise run`:
 | Coverage        | `mise run coverage`                 |
 | Deny            | `mise run deny`                     |
 | Build with OTel | `mise run build -- --features otel` |
-| Trace test      | `mise run test:trace`               |
-| Jaeger (start)  | `mise run jaeger`                   |
-| Jaeger (stop)   | `mise run jaeger:stop`              |
+| O2 (start)      | `mise run o2`                       |
+| O2 (stop)       | `mise run o2:stop`                  |
 
 ## Reference Files
 
-| Topic                      | Location                                                                   |
+| Topic                      | File                                                                       |
 | -------------------------- | -------------------------------------------------------------------------- |
 | Testing patterns & Miri    | `references/testing-patterns.md`                                           |
-| Module & project layout    | `references/module-and-project-structure.md`                               |
-| ast-grep rules (6 rules)   | `~/.claude/skills/rust-project-conventions/references/ast-grep-rules.md`   |
+| Project source layout      | `references/module-and-project-structure.md`                               |
 | Module structure (shared)  | `~/.claude/skills/rust-project-conventions/references/module-structure.md` |
+| ast-grep rules (shared)    | `~/.claude/skills/rust-project-conventions/references/ast-grep-rules.md`   |
 | Testing templates (shared) | `~/.claude/skills/rust-coding/references/testing-templates.md`             |
