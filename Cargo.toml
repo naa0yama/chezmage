@@ -46,7 +46,7 @@ otel = [
 [dependencies]
 # Core
 anyhow = "1.0"
-clap = { version = "4.5.45", features = ["derive"] }
+clap = { version = "4.6.0", features = ["derive"] }
 
 # Data
 serde = { version = "1.0.219", features = ["derive"] }
@@ -69,7 +69,7 @@ tracing-opentelemetry = { version = "0.32", default-features = false, optional =
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Pipes"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Pipes"] }
 
 [dev-dependencies]
 assert_cmd = "=2.2.0"
