@@ -40,5 +40,10 @@ git config --local --unset core.hookspath || true
 mise settings add trusted_config_paths /app
 mise install
 
-echo "Starting Jaeger..."
-mise run jaeger
+echo "Installing Claude Code and OpenObserve in parallel..."
+mise run claudecode:install &
+mise run o2:install &
+wait
+
+echo "Starting OpenObserve..."
+mise run o2

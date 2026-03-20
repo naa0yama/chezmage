@@ -13,7 +13,7 @@ codeToTestRatio:
     - "**/tests/**/*.rs"
     - "**/*test*.rs"
 coverage:
-  acceptable: current >= 40%
+  acceptable: current >= 75%
   badge:
     path: coverage.svg
   if: true

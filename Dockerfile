@@ -14,12 +14,12 @@ ARG MOLD_VERSION=v2.40.4
 # Rust tools
 ## renovate: datasource=github-tags packageName=matthiaskrgr/cargo-cache versioning=semver automerge=true
 ARG CACHE_VERSION=0.8.3
-## renovate: datasource=github-releases packageName=holodekk/cargo-sweep versioning=semver automerge=true
-ARG SWEEP_VERSION=v0.8.0
 ## renovate: datasource=github-tags packageName=regexident/cargo-modules versioning=semver automerge=true
 ARG MODULES_VERSION=v0.25.0
 ## renovate: datasource=github-releases packageName=mozilla/sccache versioning=semver automerge=true
 ARG SCCACHE_VERSION=v0.14.0
+## renovate: datasource=github-releases packageName=holmgr/cargo-sweep versioning=semver automerge=true
+ARG SWEEP_VERSION=v0.8.0
 
 # retry dns and some http codes that might be transient errors
 ARG CURL_OPTS="-sfSL --retry 3 --retry-delay 2 --retry-connrefused"
@@ -209,7 +209,7 @@ if [ ! -f "${HOME}/.local/share/bash-completion/completions/mise" ]; then
 	~/.local/bin/mise completion bash --include-bash-completion-lib > "${HOME}/.local/share/bash-completion/completions/mise"
 fi
 
-# Claude Code
+# ~/.local/bin (Claude Code, OpenObserve, etc.)
 case ":$PATH:" in
 	*:"$HOME/.local/bin":*) ;;
 	*) export PATH="$HOME/.local/bin:$PATH" ;;
@@ -218,41 +218,3 @@ alias cc="claude --dangerously-skip-permissions"
 
 _DOC_
 EOF
-
-# Ref: https://docs.anthropic.com/en/docs/claude-code/setup#native-binary-installation-beta
-RUN echo "**** Install Claude Code ****" && \
-	set -euxo pipefail && \
-	curl -fsSL https://claude.ai/install.sh | bash && \
-	exec ${SHELL} -l && \
-	claude --version && \
-	type cc
-
-
-#- -------------------------------------------------------------------------------------------------
-#- Production
-#-
-#FROM debian:bullseye-slim
-#ARG DEBIAN_FRONTEND \
-#	TZ
-#
-#SHELL [ "/bin/bash", "-c" ]
-#
-#RUN echo "**** set Timezone ****" && \
-#	set -euxo pipefail && \
-#	ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone
-#
-#RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-#	--mount=type=cache,target=/var/lib/apt,sharing=locked \
-#	\
-#	echo "**** Dependencies ****" && \
-#	set -euxo pipefail && \
-#	apt-get -y install --no-install-recommends \
-#	bash \
-#	ca-certificates
-#
-##COPY --from=development /usr/local/cargo/bin/myapp /usr/local/bin/myapp
-#
-#SHELL [ "/bin/sh", "-c" ]
-##CMD ["myapp"]
-
-# vim: set filetype=dockerfile:

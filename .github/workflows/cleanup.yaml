@@ -52,9 +52,21 @@ jobs:
           # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-your-workflow-based-on-the-head-or-base-branch-of-a-pull-request
           BRANCH: ${{ github.head_ref || github.ref_name }}
 
+      - name: Check container package exists
+        id: check_package
+        run: |
+          if gh api "users/${OWNER}/packages/container/${PACKAGE_NAME}%2Fdevcontainer" --silent 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE_NAME: ${{ steps.repo_name.outputs.lowercase }}
+
       - name: Delete untagged containers
-        # Package may not exist yet (first push hasn't happened)
-        continue-on-error: true
+        if: steps.check_package.outputs.exists == 'true'
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-name: ${{ steps.repo_name.outputs.lowercase }}/devcontainer

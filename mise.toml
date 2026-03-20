@@ -1,20 +1,21 @@
 [env]
 RUSTC_WRAPPER = "sccache"
-OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318"
+OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
+## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
+OPENOBSERVE_VERSION = "v0.70.0"
+_.source = [".devcontainer/o2-env.sh"]
 
 [tools]
-"aqua:caddyserver/caddy" = "2.11.2"
-"github:jaegertracing/jaeger" = "2.16.0"
-dprint = "0.52.0"
-actionlint = "1.7.11"
-ghalint = "1.5.3"
-zizmor = "1.16.0"
+"aqua:EmbarkStudios/cargo-deny" = "0.19.0"
 "aqua:ast-grep/ast-grep" = "0.41.1"
 "aqua:taiki-e/cargo-llvm-cov" = "0.8.4"
-"github:rust-secure-code/cargo-auditable" = "0.7.4"
-"aqua:EmbarkStudios/cargo-deny" = "0.19.0"
 "aqua:watchexec/cargo-watch" = "8.5.3"
+"github:rust-secure-code/cargo-auditable" = "0.7.4"
+actionlint = "1.7.11"
+dprint = "0.52.0"
+ghalint = "1.5.3"
 usage = "2.18.2"
+zizmor = "1.16.0"
 
 [tasks.setup]
 description = "Initial project setup"
@@ -38,33 +39,40 @@ run = "cargo check --all-targets --all-features"
 
 [tasks.test]
 description = "Run tests"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
 run = "cargo test --all-targets"
-[tasks.test.env]
-OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks."test:watch"]
 description = "TDD watch mode"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
 run = "cargo watch -x 'test --all-targets'"
-[tasks."test:watch".env]
-OTEL_EXPORTER_OTLP_ENDPOINT = ""
 
 [tasks."test:doc"]
 description = "Run doc tests"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
 run = "cargo test --doc"
-[tasks."test:doc".env]
-OTEL_EXPORTER_OTLP_ENDPOINT = ""
+
+[tasks."test:trace"]
+description = "Run tests with OTel tracing (restarts OpenObserve for clean traces)"
+run = """
+mise run o2:stop
+mise run o2
+echo 'OpenObserve restarted with clean state'
+cargo test --all-targets --features otel
+"""
 
 [tasks.coverage]
-description = "Generate LCOV coverage report"
-run = "cargo llvm-cov --lcov --output-path target/lcov.info"
-[tasks.coverage.env]
-OTEL_EXPORTER_OTLP_ENDPOINT = ""
+description = "Generate LCOV coverage report and verify thresholds"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
+run = """
+cargo llvm-cov --all-features --fail-under-lines 90
+cargo llvm-cov --all-features --lcov --output-path target/lcov.info
+"""
 
 [tasks."coverage:html"]
 description = "Generate HTML coverage report and open"
-run = "cargo llvm-cov --html --open"
-[tasks."coverage:html".env]
-OTEL_EXPORTER_OTLP_ENDPOINT = ""
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
+run = "cargo llvm-cov --all-features --html --open"
 
 [tasks.fmt]
 description = "Run all formatters"
@@ -117,43 +125,6 @@ run = "cargo deny check"
 description = "Run Miri to detect undefined behavior"
 run = "cargo +nightly miri test"
 
-[tasks.clean]
-description = "Remove target/ directory"
-run = "cargo clean"
-
-[tasks."clean:sweep"]
-description = "Remove build artifacts older than 1 day"
-run = "cargo sweep --time 1"
-
-[tasks."clean:cache"]
-description = "Show and auto-clean cargo cache"
-run = """
-cargo cache
-cargo cache --autoclean
-"""
-
-[tasks."test:trace"]
-description = "Run tests with OTel tracing (sends spans to Jaeger)"
-depends = ["jaeger"]
-run = "cargo test --all-targets --features otel"
-
-[tasks.jaeger]
-description = "Start Jaeger collector + Caddy reverse proxy"
-run = """
-.devcontainer/generate-jaeger-ui-config.sh
-pgrep -f 'jaeger --config' > /dev/null || jaeger --config .devcontainer/jaeger-config.yaml &
-caddy start --config .devcontainer/Caddyfile --adapter caddyfile 2>/dev/null || true
-until curl -sf http://localhost:13133/ > /dev/null 2>&1; do sleep 0.2; done
-echo 'Jaeger UI: http://localhost:16686'
-"""
-
-[tasks."jaeger:stop"]
-description = "Stop Jaeger and Caddy"
-run = """
-caddy stop 2>/dev/null || true
-pkill -f 'jaeger --config' 2>/dev/null || true
-"""
-
 [tasks.pre-commit]
 description = "Pre-commit checks (fast)"
 depends = ["clean:sweep", "fmt:check", "clippy:strict", "ast-grep", "lint:gh"]
@@ -161,3 +132,137 @@ depends = ["clean:sweep", "fmt:check", "clippy:strict", "ast-grep", "lint:gh"]
 [tasks.pre-push]
 description = "Pre-push checks (comprehensive)"
 depends = ["lint", "test", "coverage", "build:release", "lint:gh"]
+
+[tasks.clean]
+description = "Remove target directory entirely"
+run = "cargo clean"
+
+[tasks."clean:sweep"]
+description = "Remove build artifacts older than 1 day"
+run = "cargo sweep --time 1"
+
+[tasks."clean:cache"]
+description = "Show cargo cache info and clean registry cache"
+run = """
+cargo cache
+cargo cache --autoclean
+"""
+
+[tasks."claudecode:install"]
+description = "Install Claude Code to ~/.local/bin via official installer"
+run = """
+set -euo pipefail
+if command -v claude > /dev/null 2>&1; then
+  echo "Claude Code already installed: $(claude --version)"
+  exit 0
+fi
+case "$(uname -s)" in
+	Linux|Darwin) ;;
+	*) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
+esac
+curl -fsSL https://claude.ai/install.sh | bash
+"""
+
+[tasks."badges:init"]
+description = "Initialize orphan badges branch with empty placeholder files"
+run = """
+set -euo pipefail
+
+# Idempotent: skip if remote badges branch already exists
+if git ls-remote --heads origin badges | grep -q badges; then
+  echo 'Remote badges branch already exists — skipping.'
+  exit 0
+fi
+
+# Create orphan branch in a temporary worktree
+tmp="$(mktemp -d)"
+trap 'git worktree remove --force "${tmp}" 2>/dev/null; rm -rf "${tmp}"' EXIT
+git worktree add --detach "${tmp}"
+git -C "${tmp}" config --local --unset core.hookspath 2>/dev/null || true
+cd "${tmp}"
+git checkout --orphan badges
+git clean -fd > /dev/null 2>&1
+
+# Empty placeholders — octocov overwrites these on first CI run
+touch coverage.svg time.svg
+git add coverage.svg time.svg
+git commit -m "chore: initialize badges branch"
+git push origin badges
+
+echo 'badges branch initialized. Badges will be generated on first CI run.'
+"""
+
+[tasks."o2:install"]
+description = "Install OpenObserve Enterprise to ~/.local/bin"
+run = """
+set -euo pipefail
+
+install_dir="${HOME}/.local/bin"
+target="${install_dir}/openobserve"
+version="${OPENOBSERVE_VERSION}"
+
+# Idempotent: skip if same version already installed
+if [ -x "${target}" ]; then
+  installed="$("${target}" --version 2>/dev/null | grep -oP '\\d+\\.\\d+\\.\\d+' || true)"
+  expected="${version#v}"
+  if [ "${installed}" = "${expected}" ]; then
+    echo "OpenObserve ${version} already installed at ${target}"
+    exit 0
+  fi
+fi
+
+# Architecture detection
+case "$(uname -m)" in
+  x86_64)  arch="amd64" ;;
+  aarch64) arch="arm64" ;;
+  *)
+    echo "Error: unsupported architecture $(uname -m)" >&2
+    exit 1
+    ;;
+esac
+
+filename="openobserve-ee-${version}-linux-${arch}-musl.tar.gz"
+url="https://downloads.openobserve.ai/releases/o2-enterprise/${version}/${filename}"
+tmpfile="$(mktemp)"
+trap 'rm -f "${tmpfile}"' EXIT
+
+echo "Downloading OpenObserve ${version} (${arch})..."
+curl -fSL --retry 3 --retry-delay 2 --retry-connrefused -o "${tmpfile}" "${url}"
+
+mkdir -p "${install_dir}"
+tar -xzf "${tmpfile}" -C "${install_dir}"
+chmod +x "${target}"
+
+echo "OpenObserve ${version} installed to ${target}"
+"${target}" --version
+"""
+
+[tasks.o2]
+description = "Start OpenObserve (OTLP HTTP via :5080, UI :5080)"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
+run = """
+if ! command -v openobserve > /dev/null 2>&1; then
+  echo 'Error: openobserve not found. Run "mise run o2:install" first.' >&2
+  exit 1
+fi
+if pgrep -x openobserve > /dev/null 2>&1; then
+  echo 'OpenObserve is already running.'
+  exit 0
+fi
+rm -rf /tmp/openobserve-data
+. .devcontainer/o2-env.sh
+_root="$(pwd)"
+setsid bash -c ". ${_root}/.devcontainer/o2-env.sh && openobserve" >/dev/null 2>&1 &
+timeout 60 bash -c 'until curl -sf http://localhost:5080/healthz > /dev/null 2>&1; do sleep 0.5; done'
+_auth=$(printf '%s' "${ZO_ROOT_USER_EMAIL}:${ZO_ROOT_USER_PASSWORD}" | base64 -w0)
+cat > .mcp.json <<MCPEOF
+{"mcpServers":{"o2":{"type":"http","url":"http://localhost:${ZO_HTTP_PORT}/api/default/mcp","headers":{"Authorization":"Basic ${_auth}"}}}}
+MCPEOF
+echo 'OpenObserve started (UI: http://localhost:5080, MCP: .mcp.json)'
+"""
+
+[tasks."o2:stop"]
+description = "Stop OpenObserve"
+run = """
+pkill -x openobserve 2>/dev/null && while pgrep -x openobserve > /dev/null; do sleep 0.1; done || true
+"""

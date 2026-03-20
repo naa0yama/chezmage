@@ -1,5 +1,0 @@
-# Reverse proxy for Jaeger UI
-# Jaeger v2 query serves on :16687; Caddy exposes the familiar :16686
-:16686 {
-	reverse_proxy localhost:16687
-}

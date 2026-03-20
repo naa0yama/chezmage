@@ -20,6 +20,10 @@ runs:
         disable_annotations: ${{ inputs.sccache_disable_annotations == 'true' }}
         version: ${{ inputs.sccache }}
 
+    - name: Set RUSTC_WRAPPER
+      shell: bash
+      run: echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
     - name: Cache rustup
       uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:

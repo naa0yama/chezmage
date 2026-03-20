@@ -1,4 +1,5 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
 	"name": "Rust(chezmage)",
 	"build": {
@@ -20,8 +21,6 @@
 	"features": {
 		"ghcr.io/devcontainers/features/github-cli:1": {}
 	},
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
 	// Add another local file mount.
 	"mounts": [
 		// Claude Code
@@ -41,6 +40,7 @@
 				"Anthropic.claude-code", // 			Claude Code for VSCode
 				"dprint.dprint", // 					Dprint Code Formatter
 				"EditorConfig.EditorConfig", // 		EditorConfig for VS Code
+				"MermaidChart.vscode-mermaid-chart", // Mermaid
 				"ms-azuretools.vscode-containers", // 	Container Tools
 				"ms-vscode.live-server", // 			Live Preview
 				"redhat.vscode-yaml", // 				YAML
@@ -48,8 +48,7 @@
 				"ryanluker.vscode-coverage-gutters", // Coverage Gutters
 				"tamasfe.even-better-toml", // 			Even Better TOML
 				"usernamehw.errorlens", // 				Error Lens
-				"vadimcn.vscode-lldb", // 				CodeLLDB
-				"xyz.local-history" // 					Local History
+				"vadimcn.vscode-lldb" // 				CodeLLDB
 			],
 			"settings": {
 				"window.title": "${localWorkspaceFolderBasename}${separator}${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}",
@@ -60,9 +59,9 @@
 		}
 	},
 	"portsAttributes": {
-		"16686": {
+		"5080": {
 			"onAutoForward": "notify",
-			"label": "Jaeger UI",
+			"label": "OpenObserve UI",
 			"requireLocalPort": false
 		}
 	},
