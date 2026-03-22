@@ -278,6 +278,7 @@ pub fn load_identity(path: &Path) -> Result<String> {
 }
 
 /// Find and exec chezmoi, passing through all arguments.
+// NOTEST(infra): replaces process via execvp — tested via integration tests
 fn exec_chezmoi(args: &[String]) -> Result<()> {
     let chezmoi = find_in_path("chezmoi").context("chezmoi not found in PATH")?;
     let err = replace_process(&chezmoi, args);

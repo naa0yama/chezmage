@@ -296,4 +296,4 @@ dangerous_code_here();
 - [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
 - [ast-grep Documentation](https://ast-grep.github.io/)
 - [Clippy Lints Reference](https://rust-lang.github.io/rust-clippy/master/)
-- プロジェクト `project_rules.md`
+- プロジェクト `CLAUDE.md`

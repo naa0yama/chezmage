@@ -81,7 +81,7 @@ tempfile = "=3.27.0"
 # -
 
 [lints.clippy]
-# project_rules.md に基づくlint設定（priority=-1で個別設定を優先）
+# Strict lint baseline (priority=-1 allows per-lint overrides)
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }

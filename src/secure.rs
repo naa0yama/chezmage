@@ -37,7 +37,7 @@ impl SecureString {
     #[must_use]
     pub fn as_str(&self) -> &str {
         // Age keys are ASCII, fallback to empty on invalid UTF-8
-        std::str::from_utf8(&self.buf).unwrap_or("")
+        std::str::from_utf8(&self.buf).unwrap_or("") // NOTEST(unreachable): age keys are always valid ASCII
     }
 
     /// Count valid AGE-SECRET-KEY lines (ignoring comments).
@@ -71,6 +71,7 @@ fn lock_memory(buf: &[u8]) {
         // SAFETY: mlock pins the buffer in physical memory to prevent swap.
         // The pointer and length come from a valid Vec<u8> allocation.
         let ret = unsafe { libc::mlock(buf.as_ptr().cast::<libc::c_void>(), buf.len()) };
+        // NOTEST(ffi): mlock failure depends on OS resource limits
         if ret != 0 {
             tracing::warn!(
                 errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(-1),
@@ -92,9 +93,11 @@ fn unlock_memory(buf: &[u8]) {
     }
 }
 
+// NOTEST(ffi): non-Unix stubs — only compiled on Windows/other targets
 #[cfg(not(unix))]
 fn lock_memory(_buf: &[u8]) {}
 
+// NOTEST(ffi): non-Unix stubs — only compiled on Windows/other targets
 #[cfg(not(unix))]
 fn unlock_memory(_buf: &[u8]) {}
 

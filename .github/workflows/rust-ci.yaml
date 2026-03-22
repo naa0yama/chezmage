@@ -90,13 +90,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-pc-windows-gnu
-          - aarch64-apple-darwin
+        include:
+          - target: x86_64-pc-windows-gnu
+            cross-pkgs: gcc-mingw-w64-x86-64
+          - target: aarch64-apple-darwin
+            cross-pkgs: ""
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Install cross-compilation toolchain
+        if: matrix.cross-pkgs != ''
+        env:
+          CROSS_PKGS: ${{ matrix.cross-pkgs }}
+        run: |
+          sudo apt-get update -qq
+          # shellcheck disable=SC2086
+          sudo apt-get install -y --no-install-recommends ${CROSS_PKGS}
 
       - name: Add target
         env:
@@ -113,43 +124,6 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: cargo check --target "${TARGET}"
-
-  check:
-    name: check
-    runs-on: ubuntu-latest
-    needs: fmt
-    timeout-minutes: 15
-    permissions:
-      contents: read # Required to checkout the repository
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Rust setup
-        uses: ./.github/actions/act-setup-rust
-        with:
-          sccache: ${{ needs.fmt.outputs.sccache }}
-          sccache_disable_annotations: true
-
-      - name: Cache mise tools
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.local/share/mise
-          key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
-          restore-keys: |
-            mise-v1-${{ runner.os }}-${{ runner.arch }}-
-
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
-        with:
-          cache: false
-
-      - name: Check compilation
-        run: |
-          # shellcheck disable=SC2086
-          cargo check ${TARGET:+--target "$TARGET"} ${CARGO_ARGS}
 
   test:
     name: test
