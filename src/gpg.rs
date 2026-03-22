@@ -41,6 +41,7 @@ pub(crate) fn parse_gpg_bytes(
 ///
 /// Returns an error if `gpg` fails to execute, exits non-zero, or produces
 /// invalid UTF-8 output.
+// NOTEST(infra): requires GPG binary with valid keyring — tested via integration tests
 pub fn decrypt(path: &Path) -> Result<String> {
     let output = Command::new("gpg")
         .args(["--quiet", "--yes", "--decrypt"])

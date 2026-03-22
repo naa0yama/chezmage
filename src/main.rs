@@ -64,6 +64,7 @@ struct Args {
     args: Vec<String>,
 }
 
+// NOTEST(infra): entry point — tested via integration tests (assert_cmd)
 fn main() {
     secure::harden_process();
 
@@ -93,6 +94,7 @@ fn main() {
 }
 
 /// Initialize tracing subscriber with optional OpenTelemetry layer.
+// NOTEST(infra): tracing subscriber can only be initialized once per process
 fn init_tracing() {
     #[cfg(not(feature = "otel"))]
     {

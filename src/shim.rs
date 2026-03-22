@@ -93,12 +93,14 @@ fn deliver_key(age_key: &str, args: &[String]) -> Result<()> {
 }
 
 /// Pipe-based key delivery is not supported on this platform.
+// NOTEST(ffi): only compiled on non-Unix/non-Windows targets
 #[cfg(not(any(unix, windows)))]
 fn deliver_key(_age_key: &str, _args: &[String]) -> Result<()> {
     bail!("pipe-based key delivery requires Unix or Windows");
 }
 
 /// Deliver the age key to the real `age` binary via a Unix pipe fd.
+// NOTEST(infra): orchestrates pipe creation + process spawn — tested via integration tests
 #[cfg(unix)]
 fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
     let pipe = create_key_pipe(age_key).context("failed to create key pipe")?;
@@ -144,6 +146,7 @@ fn deliver_key_via_pipe(age_key: &str, args: &[String]) -> Result<()> {
 ///
 /// Spawns a writer thread to serve the key, then spawns age with the pipe
 /// path as identity source and waits for completion.
+// NOTEST(ffi): Windows-only orchestration — tested via integration tests on Windows CI
 #[cfg(windows)]
 fn deliver_key_via_named_pipe(age_key: &str, args: &[String]) -> Result<()> {
     let pipe = create_named_pipe().context("failed to create named pipe")?;
@@ -229,6 +232,7 @@ fn create_key_pipe(age_key: &str) -> Result<PipeFd> {
 fn close_fd(fd: RawFd) {
     // SAFETY: fd is a valid file descriptor from pipe() that has not
     // been closed yet.
+    // NOTEST(ffi): close() failure requires invalid fd state
     if unsafe { libc::close(fd) } != 0 {
         tracing::warn!(
             fd,

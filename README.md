@@ -1,5 +1,8 @@
 # chezmage
 
+![coverage](https://raw.githubusercontent.com/naa0yama/chezmage/badges/coverage.svg)
+![test execution time](https://raw.githubusercontent.com/naa0yama/chezmage/badges/time.svg)
+
 chezmoi + age encryption with **GPG (YubiKey) protected age secret keys that never touch disk**. A single Rust binary.
 
 > **chezmage** `/ʃeɪ meɪdʒ/` (shay-mage) — a portmanteau of [chezmoi](https://www.chezmoi.io/) and [age](https://age-encryption.org/).

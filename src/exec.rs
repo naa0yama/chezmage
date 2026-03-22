@@ -45,6 +45,7 @@ pub fn home_dir() -> Result<PathBuf> {
 #[must_use]
 pub fn find_in_path(name: &str) -> Option<PathBuf> {
     let path_var = env::var_os("PATH")?;
+    // NOTEST(ffi): Windows branch not exercised on Unix CI
     let exe_name = if cfg!(windows) {
         format!("{name}.exe")
     } else {
@@ -90,7 +91,7 @@ pub(crate) fn find_age_in_dirs(
 pub fn find_real_age() -> Result<PathBuf> {
     let self_path = env::current_exe().ok().and_then(|p| p.canonicalize().ok());
 
-    let exe_name = if cfg!(windows) { "age.exe" } else { "age" };
+    let exe_name = if cfg!(windows) { "age.exe" } else { "age" }; // NOTEST(ffi): Windows branch not exercised on Unix CI
 
     let dirs: Vec<PathBuf> = env::var_os("PATH")
         .map(|p| env::split_paths(&p).collect())
@@ -116,6 +117,7 @@ pub fn find_real_age() -> Result<PathBuf> {
 /// On Unix this never returns on success. On Windows it spawns and exits.
 #[must_use]
 pub fn replace_process(program: &Path, args: &[String]) -> io::Error {
+    // NOTEST(infra): execvp replaces the process image — never returns on success
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -124,6 +126,7 @@ pub fn replace_process(program: &Path, args: &[String]) -> io::Error {
         Command::new(program).args(args).exec()
     }
 
+    // NOTEST(ffi): Windows fallback — spawn + exit, not testable on Unix CI
     #[cfg(not(unix))]
     {
         match Command::new(program).args(args).status() {
