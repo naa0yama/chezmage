@@ -19,6 +19,8 @@ concurrency:
 jobs:
   tagpr:
     name: tagpr
+    env:
+      MISE_ENV: tagpr
     if: >-
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
@@ -84,57 +86,6 @@ jobs:
           > |-------|------|---------|
           > | \`tagpr:minor\` | minor | \`0.1.4\` → \`0.2.0\` |
           > | \`tagpr:major\` | major | \`0.1.4\` → \`1.0.0\` |"
-
-      - name: Update Cargo.lock
-        if: steps.tagpr.outputs.tag == ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PR_BRANCH=$(gh pr list --state open --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("tagpr-from-"))][0].headRefName // empty')
-          if [ -z "$PR_BRANCH" ]; then
-            echo "No tagpr release PR found, skipping"
-            exit 0
-          fi
-          git fetch origin "${PR_BRANCH}"
-          git checkout -f "${PR_BRANCH}"
-          unset RUSTC_WRAPPER
-          "$(rustup which cargo)" generate-lockfile
-          if ! git diff --quiet Cargo.lock; then
-            FILE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/Cargo.lock?ref=${PR_BRANCH}" --jq '.sha')
-            gh api "repos/${GITHUB_REPOSITORY}/contents/Cargo.lock" \
-              --method PUT \
-              -f message="[tagpr] update Cargo.lock" \
-              -f content="$(base64 -w 0 Cargo.lock)" \
-              -f sha="${FILE_SHA}" \
-              -f branch="${PR_BRANCH}"
-          fi
-
-      - name: Format CHANGELOG.md
-        if: steps.tagpr.outputs.tag == ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PR_BRANCH=$(gh pr list --state open --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("tagpr-from-"))][0].headRefName // empty')
-          if [ -z "$PR_BRANCH" ]; then
-            echo "No tagpr release PR found, skipping"
-            exit 0
-          fi
-          git fetch origin "${PR_BRANCH}"
-          git checkout -f "${PR_BRANCH}"
-          if [ -f CHANGELOG.md ]; then
-            dprint fmt CHANGELOG.md
-            if ! git diff --quiet CHANGELOG.md; then
-              FILE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/CHANGELOG.md?ref=${PR_BRANCH}" --jq '.sha')
-              gh api "repos/${GITHUB_REPOSITORY}/contents/CHANGELOG.md" \
-                --method PUT \
-                -f message="[tagpr] format CHANGELOG.md" \
-                -f content="$(base64 -w 0 CHANGELOG.md)" \
-                -f sha="${FILE_SHA}" \
-                -f branch="${PR_BRANCH}"
-            fi
-          fi
 
   release:
     name: Build and Release
