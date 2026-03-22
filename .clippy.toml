@@ -1,33 +1,32 @@
-# Clippy設定ファイル
-# docs/project_rules.md のルールに準拠した設定
+# Clippy configuration
 
-# 複雑度閾値の設定
+# Complexity threshold
 cognitive-complexity-threshold = 25
 
-# 引数数の閾値
+# Argument count threshold
 too-many-arguments-threshold = 7
 
-# 行数の閾値
+# Line count threshold
 too-many-lines-threshold = 100
 
-# 禁止する関数名
+# Disallowed placeholder names
 disallowed-names = ["foo", "baz", "quux"]
 
-# 禁止するtype
+# Disallowed types
 disallowed-types = [
-	# "std::collections::BTreeMap", # BTreeMapの使用を禁止する例
+	# "std::collections::BTreeMap",
 ]
 
-# 禁止するメソッド
+# Disallowed methods
 disallowed-methods = [
-	# "std::env::set_var", # set_varの使用を禁止する例
+	# "std::env::set_var",
 ]
 
-# テストコード用の除外設定
+# Test code relaxations
 allow-unwrap-in-tests = true
 allow-print-in-tests = true
 allow-dbg-in-tests = true
 allow-expect-in-tests = true
 
-# MSRV (Minimum Supported Rust Version) 設定
+# MSRV (Minimum Supported Rust Version)
 # msrv = "1.70.0"

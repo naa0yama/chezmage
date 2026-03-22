@@ -1,6 +1,6 @@
 id: no-get-prefix
 language: rust
-message: "ゲッターメソッドに get_ プレフィックスは不要 (project_rules.md 3.1)"
+message: "ゲッターメソッドに get_ プレフィックスは不要 (Rust API Guidelines C-GETTER)"
 note: "pub fn first(&self) のように直接名前を使用してください"
 severity: warning
 rule:
