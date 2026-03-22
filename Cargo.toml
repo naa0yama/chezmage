@@ -4,7 +4,7 @@
 
 [package]
 name = "chezmage"
-version = "0.3.2"
+version = "0.3.3"
 categories = ["command-line-utilities"]
 edition = "2024"
 keywords = ["chezmoi", "age", "gpg", "encryption"]
