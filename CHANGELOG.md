@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.3.3](https://github.com/naa0yama/chezmage/compare/v0.3.2...v0.3.3) - 2026-03-22
+### Documentation 🗒️
+- chore: backport CI and review cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/126
+### Dependency Updates 📦
+- chore(deps): update rust crate tracing-subscriber to v0.3.23 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/120
+### Development Environment 🔧
+- chore(deps): update taiki-e/install-action action to v2.68.29 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/124
+- chore(deps): update actions-rust-lang/setup-rust-toolchain action to v1.15.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/125
+- chore(deps): update taiki-e/install-action action to v2.68.31 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/127
+- ci(tagpr): move Cargo.lock update from postVersionCommand to workflow step by @naa0yama in https://github.com/naa0yama/chezmage/pull/129
+
 ## [v0.3.2](https://github.com/naa0yama/chezmage/compare/v0.3.1...v0.3.2) - 2026-03-20
 
 ### Documentation 🗒️
