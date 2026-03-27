@@ -184,15 +184,15 @@ missing_docs = "warn" #								pub項目のドキュメント不足を警告
 # -
 
 [profile.dev]
-opt-level = 1 #										開発時のコンパイル速度向上
+opt-level = 1 #										デバッグ実行の速度改善(コンパイル時間とのバランス)
 debug = 2 #											ワークスペースメンバーにフルデバッグ情報
 
 [profile.dev.package."*"]
 debug = 1 #											外部依存はラインテーブルのみ(サイズ削減)
 
 [profile.release]
-strip = "symbols"
-debug = 1 #											リリースビルドでもスタックトレース可能に
+strip = "debuginfo" #									DWARF削除、シンボルテーブル(.symtab)は残す
+debug = 1 #											行テーブル生成(strip=debuginfoで削除されるがsplit-debuginfo将来対応用)
 lto = "thin"
 opt-level = "z"
 codegen-units = 1

@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Cache dprint plugins
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ~/.cache/dprint
           key: dprint-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('dprint.jsonc') }}
@@ -58,34 +58,74 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Add CI note to release PR
-        if: steps.tagpr.outputs.tag == ''
+      - name: Parse tagpr pull request output
+        id: tagpr-pr
+        if: steps.tagpr.outputs.pull_request != ''
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PR_NUMBER=$(gh pr list --state open --json number,headRefName \
-            --jq '[.[] | select(.headRefName | startswith("tagpr-from-"))][0].number // empty')
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No tagpr release PR found, skipping"
-            exit 0
-          fi
-          MARKER="<!-- tagpr-ci-note -->"
-          if gh pr view "$PR_NUMBER" --json comments \
-              --jq '.comments[].body' | grep -qF "$MARKER"; then
-            echo "CI note comment already exists on PR #${PR_NUMBER}, skipping"
-            exit 0
-          fi
-          gh pr comment "$PR_NUMBER" --body "${MARKER}
-          > [!TIP]
-          > この Pull Request は \`GITHUB_TOKEN\` で作成されているため、CI が自動で起動しません。
-          > Pull Request を一度 \`Close pull request\` して \`Reopen pull request\` すると CI が起動します。
+          PR_JSON: ${{ steps.tagpr.outputs.pull_request }}
+        with:
+          script: |
+            const pr = JSON.parse(process.env.PR_JSON);
+            core.setOutput('branch', pr.head.ref);
+            core.setOutput('number', String(pr.number));
 
-          > [!NOTE]
-          > バージョンバンプはデフォルトで **patch** です。変更したい場合はこの PR に以下のラベルを付けてください:
-          > | Label | Bump | Example |
-          > |-------|------|---------|
-          > | \`tagpr:minor\` | minor | \`0.1.4\` → \`0.2.0\` |
-          > | \`tagpr:major\` | major | \`0.1.4\` → \`1.0.0\` |"
+      - name: Format CHANGELOG.md
+        id: fmt-changelog
+        if: steps.tagpr.outputs.tag == '' && steps.tagpr-pr.outputs.branch != ''
+        run: |
+          git checkout -- .
+          git clean -fd
+          git fetch origin "$BRANCH"
+          git checkout "$BRANCH"
+          dprint fmt CHANGELOG.md
+          if git diff --quiet CHANGELOG.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          BRANCH: ${{ steps.tagpr-pr.outputs.branch }}
+
+      - name: Commit formatted CHANGELOG.md
+        if: steps.fmt-changelog.outputs.changed == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          BRANCH: ${{ steps.tagpr-pr.outputs.branch }}
+        with:
+          script: |
+            const fs = require('fs');
+            const branch = process.env.BRANCH;
+            const content = fs.readFileSync('CHANGELOG.md');
+            const encoded = content.toString('base64');
+
+            const { data: ref } = await github.rest.git.getRef({
+              ...context.repo,
+              ref: `heads/${branch}`,
+            });
+
+            await github.graphql(`
+              mutation($input: CreateCommitOnBranchInput!) {
+                createCommitOnBranch(input: $input) {
+                  commit { oid }
+                }
+              }
+            `, {
+              input: {
+                branch: {
+                  repositoryNameWithOwner: `${context.repo.owner}/${context.repo.repo}`,
+                  branchName: branch,
+                },
+                expectedHeadOid: ref.object.sha,
+                message: { headline: '[tagpr] format CHANGELOG.md with dprint' },
+                fileChanges: {
+                  additions: [{
+                    path: 'CHANGELOG.md',
+                    contents: encoded,
+                  }],
+                },
+              },
+            });
 
   release:
     name: Build and Release

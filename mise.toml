@@ -1,21 +1,23 @@
 [env]
-RUSTC_WRAPPER = "sccache"
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
+RUST_LOG = "warn,chezmage=trace"
+RUSTC_WRAPPER = "sccache"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
 OPENOBSERVE_VERSION = "v0.70.0"
 _.source = [".devcontainer/o2-env.sh"]
 
 [tools]
 "aqua:EmbarkStudios/cargo-deny" = "0.19.0"
-"aqua:ast-grep/ast-grep" = "0.41.1"
-"aqua:taiki-e/cargo-llvm-cov" = "0.8.4"
+"aqua:ast-grep/ast-grep" = "0.42.0"
+"aqua:taiki-e/cargo-llvm-cov" = "0.8.5"
 "aqua:watchexec/cargo-watch" = "8.5.3"
 "github:rust-secure-code/cargo-auditable" = "0.7.4"
 actionlint = "1.7.11"
-dprint = "0.52.0"
+dprint = "0.53.0"
 ghalint = "1.5.3"
-usage = "2.18.2"
+usage = "3.0.0"
 zizmor = "1.16.0"
+codeql = { version = "latest", bin_path = "codeql", platforms = { linux-x64 = { asset_pattern = "codeql-linux64.zip" }, macos-arm64 = { asset_pattern = "codeql-osx64.zip" }, macos-x64 = { asset_pattern = "codeql-osx64.zip" }, windows-x64 = { asset_pattern = "codeql-win64.zip" } } }
 
 [tasks.setup]
 description = "Initial project setup"
@@ -265,4 +267,78 @@ echo 'OpenObserve started (UI: http://localhost:5080, MCP: .mcp.json)'
 description = "Stop OpenObserve"
 run = """
 pkill -x openobserve 2>/dev/null && while pgrep -x openobserve > /dev/null; do sleep 0.1; done || true
+"""
+
+[tasks."codeql:install"]
+description = "Create CodeQL database and download query packs"
+run = """
+set -euo pipefail
+
+db_dir="target/codeql-db"
+cargo_cache="${HOME}/.cache/codeql-cargo-target"
+
+echo '==> Downloading CodeQL query packs...'
+codeql pack download codeql/rust-queries
+
+if [ -d "${db_dir}" ]; then
+  echo "==> Removing existing database at ${db_dir}"
+  rm -rf "${db_dir}"
+fi
+
+mkdir -p "${cargo_cache}"
+
+echo '==> Creating CodeQL database for Rust (build-mode: none)...'
+codeql database create "${db_dir}" \
+  --language=rust \
+  --build-mode=none \
+  --overwrite \
+  --codescanning-config=.github/codeql-config.yml \
+  -O rust.cargo_target_dir="${cargo_cache}"
+
+echo "==> CodeQL database created at ${db_dir}"
+echo "    Cargo cache: ${cargo_cache}"
+echo '    Run analysis: mise run codeql'
+"""
+
+[tasks.codeql]
+description = "Run CodeQL analysis (SARIF output)"
+run = """
+set -euo pipefail
+
+db_dir="target/codeql-db"
+sarif_out="target/codeql-results.sarif"
+
+if [ ! -d "${db_dir}" ]; then
+  echo 'Error: CodeQL database not found. Run "mise run codeql:install" first.' >&2
+  exit 1
+fi
+
+echo '==> Running CodeQL analysis...'
+codeql database analyze "${db_dir}" codeql/rust-queries \
+  --format=sarif-latest \
+  --output="${sarif_out}" \
+  --threads=0
+
+echo "==> Results written to ${sarif_out}"
+
+# Show alert summary from SARIF
+alerts=$(python3 -c "
+import json, sys
+with open('${sarif_out}') as f:
+    sarif = json.load(f)
+total = 0
+for run in sarif.get('runs', []):
+    for result in run.get('results', []):
+        rule_id = result.get('ruleId', 'unknown')
+        msg = result.get('message', {}).get('text', '')
+        locs = result.get('locations', [])
+        for loc in locs:
+            phys = loc.get('physicalLocation', {})
+            uri = phys.get('artifactLocation', {}).get('uri', '')
+            line = phys.get('region', {}).get('startLine', '?')
+            print(f'  {rule_id}: {uri}:{line} - {msg[:120]}')
+        total += 1
+print(f'Total alerts: {total}')
+" 2>/dev/null || echo "  (install python3 to see alert details)")
+echo "${alerts}"
 """
