@@ -52,4 +52,4 @@
 	versionFile = "Cargo.toml"
 	changelog = true
 	template = ".github/tagpr-template.md"
-	postVersionCommand = "cargo generate-lockfile && git add Cargo.lock && dprint fmt CHANGELOG.md && git add CHANGELOG.md"
+	postVersionCommand = "cargo generate-lockfile && git add Cargo.lock"

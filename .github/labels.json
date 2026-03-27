@@ -75,6 +75,11 @@
 		"description": "Further information is requested"
 	},
 	{
+		"name": "backport",
+		"color": "0e8a16",
+		"description": "Backport from template or upstream repository"
+	},
+	{
 		"name": "tagpr",
 		"color": "5319e7",
 		"description": "Created by tagpr for release management"

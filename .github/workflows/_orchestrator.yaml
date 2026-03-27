@@ -18,6 +18,7 @@ jobs:
       pull-requests: read # Required to list changed files in pull request
     outputs:
       rust: ${{ steps.changes.outputs.rust }}
+      miri: ${{ steps.changes.outputs.miri }}
       audit: ${{ steps.changes.outputs.audit }}
       container: ${{ steps.changes.outputs.container }}
       docs: ${{ steps.changes.outputs.docs }}
@@ -44,8 +45,12 @@ jobs:
                 /^\.github\/actions\/act-setup-rust\//,
                 /^\.github\/workflows\/rust-ci\.yaml$/,
                 /^ast-rules\/.*\.yml$/,
-                /^mise\.toml$/,
                 /^rust-toolchain\.toml$/,
+              ],
+              miri: [
+                /\.rs$/,
+                /^rust-toolchain\.toml$/,
+                /^\.github\/workflows\/miri\.yaml$/,
               ],
               audit: [
                 /(^|\/)Cargo\.(toml|lock)$/,
@@ -85,10 +90,11 @@ jobs:
 
   miri:
     needs: detect-changes
-    if: needs.detect-changes.outputs.rust == 'true'
+    if: needs.detect-changes.outputs.miri == 'true'
     uses: ./.github/workflows/miri.yaml
     permissions:
       contents: read # Required to checkout the repository for Miri analysis
+      pull-requests: read # Required to list changed files for per-crate detection
 
   audit:
     needs: detect-changes
