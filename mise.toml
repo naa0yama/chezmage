@@ -3,7 +3,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
 RUST_LOG = "warn,chezmage=trace"
 RUSTC_WRAPPER = "sccache"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
-OPENOBSERVE_VERSION = "v0.70.0"
+OPENOBSERVE_VERSION = "v0.70.1"
 _.source = [".devcontainer/o2-env.sh"]
 
 [tools]
