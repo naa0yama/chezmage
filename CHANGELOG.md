@@ -1,12 +1,18 @@
 # Changelog
 
 ## [v0.3.3](https://github.com/naa0yama/chezmage/compare/v0.3.2...v0.3.3) - 2026-04-04
+
 ### Documentation 🗒️
+
 - chore: backport CI and review cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/126
+
 ### Dependency Updates 📦
+
 - chore(deps): update rust crate tracing-subscriber to v0.3.23 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/120
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/145
+
 ### Development Environment 🔧
+
 - chore(deps): update taiki-e/install-action action to v2.68.29 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/124
 - chore(deps): update actions-rust-lang/setup-rust-toolchain action to v1.15.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/125
 - chore(deps): update taiki-e/install-action action to v2.68.31 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/127
@@ -34,7 +40,9 @@
 - ci: backport CI workflow improvements from boilerplate-rust by @naa0yama in https://github.com/naa0yama/chezmage/pull/157
 - chore(deps): update taiki-e/install-action action to v2.69.14 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/159
 - chore(deps): update taiki-e/install-action action to v2.70.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/160
+
 ### Other Changes
+
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/133
 - chore(mise): fix badges orphan cleanup and rename o2 MCP key by @naa0yama in https://github.com/naa0yama/chezmage/pull/158
 
