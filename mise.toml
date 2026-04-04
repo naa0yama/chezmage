@@ -183,6 +183,7 @@ git worktree add --detach "${tmp}"
 git -C "${tmp}" config --local --unset core.hookspath 2>/dev/null || true
 cd "${tmp}"
 git checkout --orphan badges
+git rm -rf . > /dev/null 2>&1
 git clean -fd > /dev/null 2>&1
 
 # Empty placeholders — octocov overwrites these on first CI run
@@ -258,7 +259,7 @@ setsid bash -c ". ${_root}/.devcontainer/o2-env.sh && openobserve" >/dev/null 2>
 timeout 60 bash -c 'until curl -sf http://localhost:5080/healthz > /dev/null 2>&1; do sleep 0.5; done'
 _auth=$(printf '%s' "${ZO_ROOT_USER_EMAIL}:${ZO_ROOT_USER_PASSWORD}" | base64 -w0)
 cat > .mcp.json <<MCPEOF
-{"mcpServers":{"o2":{"type":"http","url":"http://localhost:${ZO_HTTP_PORT}/api/default/mcp","headers":{"Authorization":"Basic ${_auth}"}}}}
+{"mcpServers":{"o2-dev":{"type":"http","url":"http://localhost:${ZO_HTTP_PORT}/api/default/mcp","headers":{"Authorization":"Basic ${_auth}"}}}}
 MCPEOF
 echo 'OpenObserve started (UI: http://localhost:5080, MCP: .mcp.json)'
 """
