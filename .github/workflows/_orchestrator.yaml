@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: CI
 on:
+  push:
+    branches: [main]
   pull_request:
 
 permissions: {}
@@ -12,6 +14,7 @@ concurrency:
 jobs:
   detect-changes:
     name: detect-changes
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -45,6 +48,7 @@ jobs:
                 /^\.github\/actions\/act-setup-rust\//,
                 /^\.github\/workflows\/rust-ci\.yaml$/,
                 /^ast-rules\/.*\.yml$/,
+                /^mise\.toml$/,
                 /^rust-toolchain\.toml$/,
               ],
               miri: [
@@ -81,7 +85,9 @@ jobs:
 
   rust-ci:
     needs: detect-changes
-    if: needs.detect-changes.outputs.rust == 'true'
+    if: >-
+      github.event_name == 'push'
+      || needs.detect-changes.outputs.rust == 'true'
     uses: ./.github/workflows/rust-ci.yaml
     permissions:
       contents: write # octocov badge push
@@ -90,7 +96,9 @@ jobs:
 
   miri:
     needs: detect-changes
-    if: needs.detect-changes.outputs.miri == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.detect-changes.outputs.miri == 'true'
     uses: ./.github/workflows/miri.yaml
     permissions:
       contents: read # Required to checkout the repository for Miri analysis
@@ -98,14 +106,18 @@ jobs:
 
   audit:
     needs: detect-changes
-    if: needs.detect-changes.outputs.audit == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.detect-changes.outputs.audit == 'true'
     uses: ./.github/workflows/audit.yaml
     permissions:
       contents: read # Required to checkout the repository for dependency audit
 
   container:
     needs: detect-changes
-    if: needs.detect-changes.outputs.container == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.detect-changes.outputs.container == 'true'
     uses: ./.github/workflows/prebuild-container.yaml
     permissions:
       contents: read # Required to checkout the repository
@@ -113,7 +125,9 @@ jobs:
 
   docs-ci:
     needs: detect-changes
-    if: needs.detect-changes.outputs.docs == 'true'
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.detect-changes.outputs.docs == 'true'
     uses: ./.github/workflows/docs-ci.yaml
     permissions:
       contents: read # Required to checkout the repository
