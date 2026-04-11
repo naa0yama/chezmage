@@ -37,6 +37,18 @@ fi
 
 chmod +x .githooks/*
 git config --local --unset core.hookspath || true
+
+# Install mise binary (not baked into the image; tools are installed at start time
+# so the Docker build does not require a MISE_GITHUB_TOKEN secret)
+if [ ! -x "${HOME}/.local/bin/mise" ]; then
+	echo "Installing mise..."
+	curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused https://mise.jdx.dev/install.sh | sh
+fi
+mise --version
+
+# Ensure ~/.local/bin is on PATH (not sourced from .bashrc in non-login shells)
+export PATH="${HOME}/.local/bin:${PATH}"
+
 mise settings add trusted_config_paths /app
 mise install
 

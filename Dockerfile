@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.22.0@sha256:a72bffc78f7467a2d523cf7d2a0b69e81cf8bb955150de8c5c999de5a35b32a8
+# syntax=docker/dockerfile:1.23.0@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 #- -------------------------------------------------------------------------------------------------
 #- Global
 #-
@@ -28,7 +28,7 @@ ARG CURL_OPTS="-sfSL --retry 3 --retry-delay 2 --retry-connrefused"
 #- -------------------------------------------------------------------------------------------------
 #- Builder Base
 #-
-FROM rust:1.93.1-trixie@sha256:ecbe59a8408895edd02d9ef422504b8501dd9fa1526de27a45b73406d734d659 AS builder-base
+FROM rust:1.94.0-trixie@sha256:f17e723020f87c1b4ac4ff6d73c9dfbb7d5cb978754c76641e47337d65f61e12 AS builder-base
 ARG CACHE_VERSION \
 	CURL_OPTS \
 	DEBIAN_FRONTEND \
@@ -177,23 +177,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # User level settings
 USER ${USER_NAME}
-RUN echo "**** Install mise ****" && \
-	set -euxo pipefail && \
-	curl https://mise.jdx.dev/install.sh | sh && \
-	~/.local/bin/mise --version
-
-COPY --chown=${USER_NAME}:${USER_NAME} mise.toml /tmp/mise.toml
-RUN --mount=type=secret,id=MISE_GITHUB_TOKEN,mode=0444 \
-	\
-	echo "**** Install tools via mise ****" && \
-	set -euxo pipefail && \
-	{ set +x; if [ -f /run/secrets/MISE_GITHUB_TOKEN ] && [ -s /run/secrets/MISE_GITHUB_TOKEN ]; then export MISE_GITHUB_TOKEN=$(cat /run/secrets/MISE_GITHUB_TOKEN); echo "MISE_GITHUB_TOKEN loaded from secret"; fi; set -x; } && \
-	cd /tmp && \
-	~/.local/bin/mise trust -y /tmp/mise.toml && \
-	~/.local/bin/mise install -y && \
-	~/.local/bin/mise trust -y --untrust /tmp/mise.toml && \
-	rm /tmp/mise.toml
-
 RUN <<EOF
 echo "**** add '~/.bashrc mise and claude code ****"
 set -euxo pipefail

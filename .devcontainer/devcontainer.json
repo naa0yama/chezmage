@@ -1,7 +1,6 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
-	"name": "Rust(chezmage)",
+	"name": "Rust(${localWorkspaceFolderBasename})",
 	"build": {
 		"dockerfile": "../Dockerfile",
 		"target": "development",
@@ -9,18 +8,12 @@
 			"TZ": "${localEnv:TZ:Asia/Tokyo}",
 			"USER_GID": "1100",
 			"USER_UID": "1100"
-		},
-		"options": [
-			"--secret",
-			"id=MISE_GITHUB_TOKEN,src=/tmp/.devcontainer-github-token"
-		]
+		}
 	},
 	"initializeCommand": "./.devcontainer/initializeCommand.sh",
 	"postStartCommand": "./.devcontainer/postStartCommand.sh",
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	"features": {
-		"ghcr.io/devcontainers/features/github-cli:1": {}
-	},
+	"features": {},
 	// Add another local file mount.
 	"mounts": [
 		// Claude Code
@@ -30,14 +23,17 @@
 		"type=bind,source=${localEnv:HOME}/.gitconfig.d,target=/home/cuser/.gitconfig.d",
 		// GitHub
 		"type=bind,source=${localEnv:HOME}/.config/gh,target=/home/cuser/.config/gh",
-		// Mise tools cache (persists across container rebuilds, project-isolated)
-		"type=volume,source=${localWorkspaceFolderBasename}-mise-cache,target=/home/cuser/.local/share/mise"
+		// Cross-project shared: ~/.local/bin (mise/openobserve binary, claude symlink)
+		"type=volume,source=devcontainer-shared-local-bin,target=/home/cuser/.local/bin",
+		// Cross-project shared: mise managed tool installs
+		"type=volume,source=devcontainer-shared-mise,target=/home/cuser/.local/share/mise",
+		// Cross-project shared: claude binary versions (symlink target of ~/.local/bin/claude)
+		"type=volume,source=devcontainer-shared-claude,target=/home/cuser/.local/share/claude"
 	],
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				// 										Rust Syntax, Rust Doc Viewer 同様の機能は rust-analyzer に含まれるので入れない
-				"Anthropic.claude-code", // 			Claude Code for VSCode
 				"dprint.dprint", // 					Dprint Code Formatter
 				"EditorConfig.EditorConfig", // 		EditorConfig for VS Code
 				"MermaidChart.vscode-mermaid-chart", // Mermaid
@@ -67,7 +63,8 @@
 	},
 	"otherPortsAttributes": { "onAutoForward": "ignore" },
 	"containerEnv": {
-		"MISE_ENV": "devcontainer"
+		"MISE_ENV": "devcontainer",
+		"MISE_GITHUB_TOKEN": "${localEnv:MISE_GITHUB_TOKEN}"
 	},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	"remoteUser": "cuser",

@@ -15,15 +15,17 @@ env:
   SCCACHE_GHA_ENABLED: "true"
 
 jobs:
-  fmt:
-    name: fmt
+  setup:
+    name: Load CI config
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     permissions:
-      contents: read # Required to checkout the repository
+      contents: read
     outputs:
+      timeout_minutes: ${{ steps.load.outputs.timeout_minutes }}
+      apt_packages: ${{ steps.load.outputs.apt_packages }}
+      cross_check_matrix: ${{ steps.load.outputs.cross_check_matrix }}
       sccache: ${{ steps.versions.outputs.sccache }}
-
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -31,7 +33,7 @@ jobs:
 
       - name: Check Rust version consistency
         run: |
-          rust_version=$(grep -E '^FROM rust:[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/FROM rust:([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          rust_version=$(grep -E 'FROM.*rust:[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | head -1 | sed -E 's/.*rust:([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
           tool_version=$(grep -E '^channel = "[0-9]+\.[0-9]+\.[0-9]+"' rust-toolchain.toml | sed -E 's/channel = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
           if [ "$rust_version" != "$tool_version" ]; then
             echo "ERROR: Rust version mismatch! Dockerfile: $rust_version, rust-toolchain.toml: $tool_version"
@@ -44,10 +46,35 @@ jobs:
           sccache_version=$(grep -E '^ARG SCCACHE_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG SCCACHE_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
           echo "sccache=${sccache_version}" >> "$GITHUB_OUTPUT"
 
+      - name: Load project config
+        id: load
+        run: |
+          timeout_minutes=$(jq -r '.timeout_minutes // 15' .github/project-config.json)
+          apt_packages=$(jq -r '.apt_packages // ""' .github/project-config.json)
+          cross_check_matrix=$(jq -c '.cross_check_targets' .github/project-config.json)
+          {
+            echo "timeout_minutes=${timeout_minutes}"
+            echo "apt_packages=${apt_packages}"
+            echo "cross_check_matrix=${cross_check_matrix}"
+          } >> "$GITHUB_OUTPUT"
+
+  fmt:
+    name: fmt
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(needs.setup.outputs.timeout_minutes) }}
+    permissions:
+      contents: read # Required to checkout the repository
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
       - name: Rust setup
         uses: ./.github/actions/act-setup-rust
         with:
-          sccache: ${{ steps.versions.outputs.sccache }}
+          sccache: ${{ needs.setup.outputs.sccache }}
           sccache_disable_annotations: true
 
       - name: Cache mise tools
@@ -81,32 +108,30 @@ jobs:
           mise run clippy:strict
 
   cross-check:
-    name: cross-check (${{ matrix.target }})
-    runs-on: ubuntu-latest
-    needs: fmt
-    timeout-minutes: 15
+    name: cross-check (${{ matrix.name || matrix.target }})
+    runs-on: ${{ matrix.os }}
+    needs: [setup, fmt]
+    timeout-minutes: ${{ fromJSON(needs.setup.outputs.timeout_minutes) }}
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: x86_64-pc-windows-gnu
-            cross-pkgs: gcc-mingw-w64-x86-64
-          - target: aarch64-unknown-linux-gnu
-            cross-pkgs: gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+        include: ${{ fromJSON(needs.setup.outputs.cross_check_matrix) }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - name: Cache cross-compilation packages
+        if: matrix.os == 'ubuntu-latest' && matrix.cross-pkgs
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ~/cross-apt-cache
           key: cross-apt-${{ runner.arch }}-${{ matrix.target }}-v1
 
       - name: Install cross-compilation toolchain
+        if: matrix.os == 'ubuntu-latest' && matrix.cross-pkgs
         env:
           CROSS_PKGS: ${{ matrix.cross-pkgs }}
         run: |
@@ -126,19 +151,23 @@ jobs:
       - name: Rust setup
         uses: ./.github/actions/act-setup-rust
         with:
-          sccache: ${{ needs.fmt.outputs.sccache }}
+          sccache: ${{ needs.setup.outputs.sccache }}
           sccache_disable_annotations: true
 
       - name: Check compilation for ${{ matrix.target }}
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo check --target "${TARGET}"
+          SCOPE: ${{ matrix.scope }}
+        run: |
+          set -euxo pipefail
+          # shellcheck disable=SC2086
+          cargo check ${SCOPE:---all-targets} --target "${TARGET}"
 
   test:
     name: test
     runs-on: ubuntu-latest
-    needs: fmt
-    timeout-minutes: 15
+    needs: [setup, fmt]
+    timeout-minutes: ${{ fromJSON(needs.setup.outputs.timeout_minutes) }}
     permissions:
       actions: read #         For octocov to retrieve previous reports from artifacts
       contents: write #       For octocov to push badges to repository
@@ -153,7 +182,7 @@ jobs:
       - name: Rust setup
         uses: ./.github/actions/act-setup-rust
         with:
-          sccache: ${{ needs.fmt.outputs.sccache }}
+          sccache: ${{ needs.setup.outputs.sccache }}
 
       - name: Cache mise tools
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4

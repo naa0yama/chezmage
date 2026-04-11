@@ -1,3 +1,6 @@
 # .claude
 .claude/skills/lib-*/SKILL.md
 .claude/skills/tool-*/SKILL.md
+
+# o2
+.mcp.json
