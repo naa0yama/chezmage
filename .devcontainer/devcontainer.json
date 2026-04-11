@@ -9,11 +9,7 @@
 			"TZ": "${localEnv:TZ:Asia/Tokyo}",
 			"USER_GID": "1100",
 			"USER_UID": "1100"
-		},
-		"options": [
-			"--secret",
-			"id=MISE_GITHUB_TOKEN,src=/tmp/.devcontainer-github-token"
-		]
+		}
 	},
 	"initializeCommand": "./.devcontainer/initializeCommand.sh",
 	"postStartCommand": "./.devcontainer/postStartCommand.sh",

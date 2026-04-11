@@ -177,23 +177,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # User level settings
 USER ${USER_NAME}
-RUN echo "**** Install mise ****" && \
-	set -euxo pipefail && \
-	curl https://mise.jdx.dev/install.sh | sh && \
-	~/.local/bin/mise --version
-
-COPY --chown=${USER_NAME}:${USER_NAME} mise.toml /tmp/mise.toml
-RUN --mount=type=secret,id=MISE_GITHUB_TOKEN,mode=0444 \
-	\
-	echo "**** Install tools via mise ****" && \
-	set -euxo pipefail && \
-	{ set +x; if [ -f /run/secrets/MISE_GITHUB_TOKEN ] && [ -s /run/secrets/MISE_GITHUB_TOKEN ]; then export MISE_GITHUB_TOKEN=$(cat /run/secrets/MISE_GITHUB_TOKEN); echo "MISE_GITHUB_TOKEN loaded from secret"; fi; set -x; } && \
-	cd /tmp && \
-	~/.local/bin/mise trust -y /tmp/mise.toml && \
-	~/.local/bin/mise install -y && \
-	~/.local/bin/mise trust -y --untrust /tmp/mise.toml && \
-	rm /tmp/mise.toml
-
 RUN <<EOF
 echo "**** add '~/.bashrc mise and claude code ****"
 set -euxo pipefail
