@@ -7,7 +7,7 @@ OPENOBSERVE_VERSION = "v0.70.2"
 GH_INFRA_VERSION = "v0.9.1"
 
 [tools]
-"aqua:ast-grep/ast-grep" = "0.42.0"
+"aqua:ast-grep/ast-grep" = "0.42.1"
 "aqua:cli/cli" = "2.89.0"
 "aqua:EmbarkStudios/cargo-deny" = "0.19.0"
 "aqua:taiki-e/cargo-llvm-cov" = "0.8.5"
