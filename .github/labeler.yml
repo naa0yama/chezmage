@@ -4,27 +4,33 @@
 core:
   - changed-files:
       - any-glob-to-any-file:
-          - "Dockerfile*"
+          - "src/**/*.rs"
+          - "Cargo.toml"
+          - "Cargo.lock"
+          - "rust-toolchain.toml"
+          - ".clippy.toml"
+          - "ast-rules/**"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
 
 github-actions:
   - changed-files:
-      - any-glob-to-any-file: ".github/**"
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+          - ".github/actionlint.yaml"
 
 documentation:
   - changed-files:
       - any-glob-to-any-file:
           - "docs/**"
           - "README.md"
-
-tests:
-  - changed-files:
-      - any-glob-to-any-file: "tests/**"
+          - "**/*.md"
 
 renovate:
-  - changed-files:
-      - any-glob-to-any-file: "renovate.json"
-
-renovate-config:
   - changed-files:
       - any-glob-to-any-file: "renovate.json"
 

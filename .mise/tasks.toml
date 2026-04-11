@@ -1,0 +1,329 @@
+# This file is managed by the boilerplate-rust template.
+# Do NOT edit directly — place project-specific overrides in overrides.toml.
+
+[setup]
+description = "Initial project setup"
+run = """
+if [ -d .githooks ]; then chmod +x .githooks/*; fi
+"""
+
+[build]
+description = "Debug build"
+run = "cargo build"
+
+["build:release"]
+description = "Release build (with auditable dependency info)"
+run = "cargo auditable build --release"
+
+["build:timings"]
+description = "Build with timing analysis"
+run = "cargo build --timings"
+
+[check]
+description = "Compile check"
+run = "cargo check --all-targets --all-features"
+
+[test]
+description = "Run tests"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
+run = "cargo test --all-targets"
+
+["test:watch"]
+description = "TDD watch mode"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
+run = "cargo watch -x 'test --all-targets'"
+
+["test:doc"]
+description = "Run doc tests"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
+run = "cargo test --doc"
+
+["test:trace"]
+description = "Run tests with OTel tracing (restarts OpenObserve for clean traces)"
+run = """
+mise run o2:stop
+mise run o2
+echo 'OpenObserve restarted with clean state'
+cargo test --all-targets --features otel
+"""
+
+[coverage]
+description = "Generate LCOV coverage report and verify thresholds"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
+run = """
+cargo llvm-cov --all-features --fail-under-lines 90
+cargo llvm-cov --all-features --lcov --output-path target/lcov.info
+"""
+
+["coverage:html"]
+description = "Generate HTML coverage report and open"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
+run = "cargo llvm-cov --all-features --html --open"
+
+[fmt]
+description = "Run all formatters"
+run = """
+cargo fmt
+dprint fmt
+"""
+
+["fmt:check"]
+description = "Check all formatting"
+run = """
+cargo fmt -- --check
+dprint check
+"""
+
+[clippy]
+description = "Run clippy lints"
+run = "cargo clippy --all-targets --all-features"
+
+["clippy:strict"]
+description = "Run clippy lints (warnings as errors)"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+["ast-grep"]
+description = "Run ast-grep custom rules check"
+run = "sg scan --error --color never"
+
+[lint]
+description = "Run all lints"
+depends = ["fmt:check", "clippy:strict", "ast-grep"]
+
+["lint:gh"]
+description = "Lint GitHub Actions workflows"
+run = """
+actionlint
+ghalint run
+ghalint run-action
+zizmor --persona=pedantic .github/
+"""
+
+[audit]
+description = "Audit dependencies"
+run = "cargo audit"
+
+[deny]
+description = "Check licenses and dependencies"
+run = "cargo deny check"
+
+[miri]
+description = "Run Miri to detect undefined behavior"
+run = "cargo +nightly miri test"
+
+["pre-commit"]
+description = "Pre-commit checks (fast)"
+depends = ["clean:sweep", "fmt:check", "clippy:strict", "ast-grep", "lint:gh"]
+
+["pre-push"]
+description = "Pre-push checks (comprehensive)"
+depends = ["lint", "test", "coverage", "build:release", "lint:gh"]
+
+[clean]
+description = "Remove target directory entirely"
+run = "cargo clean"
+
+["clean:sweep"]
+description = "Remove build artifacts older than 1 day"
+run = "cargo sweep --time 1"
+
+["clean:cache"]
+description = "Show cargo cache info and clean registry cache"
+run = """
+cargo cache
+cargo cache --autoclean
+"""
+
+["claudecode:install"]
+description = "Install Claude Code to ~/.local/bin via official installer"
+run = """
+set -euo pipefail
+if command -v claude > /dev/null 2>&1; then
+  echo "Claude Code already installed: $(claude --version)"
+  exit 0
+fi
+case "$(uname -s)" in
+	Linux|Darwin) ;;
+	*) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
+esac
+curl -sfSL --retry 3 --retry-delay 2 --retry-connrefused https://claude.ai/install.sh | bash
+"""
+
+["badges:init"]
+description = "Initialize orphan badges branch with empty placeholder files"
+run = """
+set -euo pipefail
+
+# Idempotent: skip if remote badges branch already exists
+if git ls-remote --heads origin badges | grep -q badges; then
+  echo 'Remote badges branch already exists — skipping.'
+  exit 0
+fi
+
+# Create orphan branch in a temporary worktree
+tmp="$(mktemp -d)"
+trap 'git worktree remove --force "${tmp}" 2>/dev/null; rm -rf "${tmp}"' EXIT
+git worktree add --detach "${tmp}"
+git -C "${tmp}" config --local --unset core.hookspath 2>/dev/null || true
+cd "${tmp}"
+git checkout --orphan badges
+git rm -rf . > /dev/null 2>&1
+git clean -fd > /dev/null 2>&1
+
+# Empty placeholders — octocov overwrites these on first CI run
+touch coverage.svg time.svg
+git add coverage.svg time.svg
+git commit -m "chore: initialize badges branch"
+git push origin badges
+
+echo 'badges branch initialized. Badges will be generated on first CI run.'
+"""
+
+["o2:install"]
+description = "Install OpenObserve Enterprise to ~/.local/bin"
+run = """
+set -euo pipefail
+
+install_dir="${HOME}/.local/bin"
+target="${install_dir}/openobserve"
+version="${OPENOBSERVE_VERSION}"
+
+# Idempotent: skip if same version already installed
+if [ -x "${target}" ]; then
+  installed="$("${target}" --version 2>/dev/null | grep -oP '\\d+\\.\\d+\\.\\d+' || true)"
+  expected="${version#v}"
+  if [ "${installed}" = "${expected}" ]; then
+    echo "OpenObserve ${version} already installed at ${target}"
+    exit 0
+  fi
+fi
+
+# Architecture detection
+case "$(uname -m)" in
+  x86_64)  arch="amd64" ;;
+  aarch64) arch="arm64" ;;
+  *)
+    echo "Error: unsupported architecture $(uname -m)" >&2
+    exit 1
+    ;;
+esac
+
+filename="openobserve-ee-${version}-linux-${arch}-musl.tar.gz"
+url="https://downloads.openobserve.ai/releases/o2-enterprise/${version}/${filename}"
+tmpfile="$(mktemp)"
+trap 'rm -f "${tmpfile}"' EXIT
+
+echo "Downloading OpenObserve ${version} (${arch})..."
+curl -fSL --retry 3 --retry-delay 2 --retry-connrefused -o "${tmpfile}" "${url}"
+
+mkdir -p "${install_dir}"
+tar -xzf "${tmpfile}" -C "${install_dir}"
+chmod +x "${target}"
+
+echo "OpenObserve ${version} installed to ${target}"
+"${target}" --version
+"""
+
+[o2]
+description = "Start OpenObserve (OTLP HTTP via :5080, UI :5080)"
+env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
+run = """
+if ! command -v openobserve > /dev/null 2>&1; then
+  echo 'Error: openobserve not found. Run "mise run o2:install" first.' >&2
+  exit 1
+fi
+if pgrep -x openobserve > /dev/null 2>&1; then
+  echo 'OpenObserve is already running.'
+  exit 0
+fi
+rm -rf /tmp/openobserve-data
+. .devcontainer/o2-env.sh
+_root="$(pwd)"
+setsid bash -c ". ${_root}/.devcontainer/o2-env.sh && openobserve" >/dev/null 2>&1 &
+timeout 60 bash -c 'until curl -sf http://localhost:5080/healthz > /dev/null 2>&1; do sleep 0.5; done'
+_auth=$(printf '%s' "${ZO_ROOT_USER_EMAIL}:${ZO_ROOT_USER_PASSWORD}" | base64 -w0)
+cat > .mcp.json <<MCPEOF
+{"mcpServers":{"o2-dev":{"type":"http","url":"http://localhost:${ZO_HTTP_PORT}/api/default/mcp","headers":{"Authorization":"Basic ${_auth}"}}}}
+MCPEOF
+echo 'OpenObserve started (UI: http://localhost:5080, MCP: .mcp.json)'
+"""
+
+["o2:stop"]
+description = "Stop OpenObserve"
+run = """
+pkill -x openobserve 2>/dev/null && while pgrep -x openobserve > /dev/null; do sleep 0.1; done || true
+"""
+
+["codeql:install"]
+description = "Create CodeQL database and download query packs"
+run = """
+set -euo pipefail
+
+db_dir="target/codeql-db"
+cargo_cache="${HOME}/.cache/codeql-cargo-target"
+
+echo '==> Downloading CodeQL query packs...'
+codeql pack download codeql/rust-queries
+
+if [ -d "${db_dir}" ]; then
+  echo "==> Removing existing database at ${db_dir}"
+  rm -rf "${db_dir}"
+fi
+
+mkdir -p "${cargo_cache}"
+
+echo '==> Creating CodeQL database for Rust (build-mode: none)...'
+codeql database create "${db_dir}" \
+  --language=rust \
+  --build-mode=none \
+  --overwrite \
+  --codescanning-config=.github/codeql-config.yml \
+  -O rust.cargo_target_dir="${cargo_cache}"
+
+echo "==> CodeQL database created at ${db_dir}"
+echo "    Cargo cache: ${cargo_cache}"
+echo '    Run analysis: mise run codeql'
+"""
+
+[codeql]
+description = "Run CodeQL analysis (SARIF output)"
+run = """
+set -euo pipefail
+
+db_dir="target/codeql-db"
+sarif_out="target/codeql-results.sarif"
+
+if [ ! -d "${db_dir}" ]; then
+  echo 'Error: CodeQL database not found. Run "mise run codeql:install" first.' >&2
+  exit 1
+fi
+
+echo '==> Running CodeQL analysis...'
+codeql database analyze "${db_dir}" codeql/rust-queries \
+  --format=sarif-latest \
+  --output="${sarif_out}" \
+  --threads=0
+
+echo "==> Results written to ${sarif_out}"
+
+# Show alert summary from SARIF
+alerts=$(python3 -c "
+import json, sys
+with open('${sarif_out}') as f:
+    sarif = json.load(f)
+total = 0
+for run in sarif.get('runs', []):
+    for result in run.get('results', []):
+        rule_id = result.get('ruleId', 'unknown')
+        msg = result.get('message', {}).get('text', '')
+        locs = result.get('locations', [])
+        for loc in locs:
+            phys = loc.get('physicalLocation', {})
+            uri = phys.get('artifactLocation', {}).get('uri', '')
+            line = phys.get('region', {}).get('startLine', '?')
+            print(f'  {rule_id}: {uri}:{line} - {msg[:120]}')
+        total += 1
+print(f'Total alerts: {total}')
+" 2>/dev/null || echo "  (install python3 to see alert details)")
+echo "${alerts}"
+"""

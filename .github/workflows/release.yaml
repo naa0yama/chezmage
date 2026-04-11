@@ -20,23 +20,155 @@ concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false # zizmor: ignore[concurrency-limits] release must not be cancelled mid-flight
 
+env:
+  CARGO_TERM_COLOR: always
+  SCCACHE_GHA_ENABLED: "true"
+
 jobs:
-  build:
-    uses: ./.github/workflows/release-build.yaml
+  setup:
+    name: Load release config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
-      contents: read # Required to call another workflow
+      contents: read
+    outputs:
+      matrix: ${{ steps.load.outputs.matrix }}
+      cli_toml: ${{ steps.load.outputs.cli_toml }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Load release config
+        id: load
+        shell: bash
+        run: |
+          matrix=$(jq -c '.release_targets' .github/project-config.json)
+          cli_toml=$(jq -r '.cli_toml' .github/project-config.json)
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+          echo "cli_toml=${cli_toml}" >> "$GITHUB_OUTPUT"
+
+  build-matrix:
+    name: build-${{ matrix.target }}
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: read # Required to checkout the repository
       actions: write # Required to upload artifacts
       id-token: write # Required for build provenance attestation
       attestations: write # Required for build provenance attestation
-    with:
-      tag: ${{ inputs.tag || github.ref_name }}
+    outputs:
+      artifacts: ${{ steps.collect-artifacts.outputs.artifacts }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.setup.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Extract tool versions
+        id: versions
+        env:
+          cli_toml: ${{ needs.setup.outputs.cli_toml }}
+        shell: bash
+        run: |
+          sccache_version=$(grep -E '^ARG SCCACHE_VERSION=v?[0-9]+\.[0-9]+\.[0-9]+' Dockerfile | sed -E 's/ARG SCCACHE_VERSION=(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          auditable_version=$(grep -E 'cargo-auditable' mise.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+
+          # Find the CLI crate that defines the [[bin]] target
+          if grep -q '^\[\[bin\]\]' "$cli_toml"; then
+            binary_name=$(grep -E '^\[\[bin\]\]' -A 5 "$cli_toml" | grep -E '^name = "' | head -n 1 | sed -E 's/name = "(.*)"/\1/')
+          else
+            binary_name=$(grep -E '^\[package\]' -A 10 "$cli_toml" | grep -E '^name = "' | sed -E 's/name = "(.*)"/\1/')
+          fi
+
+          if [ -z "$binary_name" ]; then
+            echo "ERROR: Could not determine binary name from ${cli_toml}"
+            exit 1
+          fi
+
+          {
+            echo "sccache=${sccache_version}"
+            echo "auditable=${auditable_version}"
+            echo "binary_name=${binary_name}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Rust setup
+        uses: ./.github/actions/act-setup-rust
+        with:
+          sccache: ${{ steps.versions.outputs.sccache }}
+
+      - name: Install cargo-auditable
+        uses: taiki-e/install-action@1ed3272338f573e042a2e6bca3893aa19f43b47a # v2.71.3
+        with:
+          tool: cargo-auditable@${{ steps.versions.outputs.auditable }}
+
+      - name: Build release binary
+        env:
+          TARGET: ${{ matrix.target }}
+          BINARY_NAME: ${{ steps.versions.outputs.binary_name }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cargo auditable build --release --target "${TARGET}" --bin "${BINARY_NAME}" --verbose
+
+      - name: Set binary extension
+        id: binary-ext
+        env:
+          TARGET: ${{ matrix.target }}
+        shell: bash
+        run: |
+          if [[ "${TARGET}" == *windows* ]]; then
+            echo "ext=.exe" >> "$GITHUB_OUTPUT"
+          else
+            echo "ext=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        env:
+          BINARY_NAME: ${{ steps.versions.outputs.binary_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          TARGET: ${{ matrix.target }}
+          BINARY_EXT: ${{ steps.binary-ext.outputs.ext }}
+        with:
+          name: ${{ env.BINARY_NAME }}-${{ env.TAG }}-${{ env.TARGET }}
+          path: target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}${{ env.BINARY_EXT }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        env:
+          BINARY_NAME: ${{ steps.versions.outputs.binary_name }}
+          TARGET: ${{ matrix.target }}
+          BINARY_EXT: ${{ steps.binary-ext.outputs.ext }}
+        with:
+          subject-path: target/${{ env.TARGET }}/release/${{ env.BINARY_NAME }}${{ env.BINARY_EXT }}
+
+      - name: Collect artifact info
+        id: collect-artifacts
+        env:
+          BINARY_NAME: ${{ steps.versions.outputs.binary_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          TARGET: ${{ matrix.target }}
+          BINARY_EXT: ${{ steps.binary-ext.outputs.ext }}
+        shell: bash
+        run: |
+          artifact_name="${BINARY_NAME}-${TAG}-${TARGET}"
+          binary_path="target/${TARGET}/release/${BINARY_NAME}${BINARY_EXT}"
+          echo "artifacts=${artifact_name}:${binary_path}" >> "$GITHUB_OUTPUT"
 
   release:
     name: Upload Release Assets
-    needs: build
+    needs: build-matrix
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: always() && (needs.build.result == 'success')
+    if: always() && (needs.build-matrix.result == 'success')
     permissions:
       contents: write # Required to create releases and upload assets
 

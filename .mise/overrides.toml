@@ -1,0 +1,12 @@
+# Project-specific task overrides.
+# Tasks defined here take precedence over tasks.toml because this file
+# appears FIRST in the task_config.includes array in mise.toml.
+#
+# Example — override the coverage threshold for this project:
+# [coverage]
+# description = "Generate LCOV coverage report and verify thresholds"
+# env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
+# run = """
+# cargo llvm-cov --all-features --fail-under-lines 80
+# cargo llvm-cov --all-features --lcov --output-path target/lcov.info
+# """
