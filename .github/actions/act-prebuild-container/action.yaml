@@ -24,6 +24,12 @@ runs:
         username: ${{ github.repository_owner }}
         password: ${{ inputs.github_token }}
 
+    - name: Write MISE_GITHUB_TOKEN to file for Docker build secret
+      shell: bash
+      env:
+        MISE_GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: echo "${MISE_GITHUB_TOKEN}" > /tmp/.devcontainer-github-token
+
     - name: Pre-build dev container image
       uses: devcontainers/ci@8bf61b26e9c3a98f69cb6ce2f88d24ff59b785c6 # v0.3.1900000417
       with:
