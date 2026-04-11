@@ -1,52 +1,25 @@
 # - -------------------------------------------------------------------------------------------------
-# - Package
+# - Workspace
 # -
+[workspace]
+resolver = "3"
+members = [
+	"crates/chezmage",
+]
 
-[package]
-name = "chezmage"
+[workspace.package]
 version = "0.3.2"
-categories = ["command-line-utilities"]
 edition = "2024"
-keywords = ["chezmoi", "age", "gpg", "encryption"]
 license = "AGPL-3.0-only"
 repository = "https://github.com/naa0yama/chezmage"
-description = "chezmoi + memory + age: GPG-backed age encryption wrapper for chezmoi. Zero key on disk."
-
-[[bin]]
-name = "chezmage"
-path = "src/main.rs"
-
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.tar.gz"
-bin-dir = "{ bin }{ binary-ext }"
-pkg-fmt = "tgz"
-disabled-strategies = ["quick-install"]
-
-[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
-pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.zip"
-pkg-fmt = "zip"
-
-# - -------------------------------------------------------------------------------------------------
-# - Features
-# -
-
-[features]
-default = []
-otel = [
-	"dep:opentelemetry",
-	"dep:opentelemetry_sdk",
-	"dep:opentelemetry-otlp",
-	"dep:tracing-opentelemetry",
-]
 
 # - -------------------------------------------------------------------------------------------------
 # - Dependencies
 # -
-
-[dependencies]
+[workspace.dependencies]
 # Core
 anyhow = "1.0"
-clap = { version = "4.6.0", features = ["derive"] }
+clap = { version = "4.5.45", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color", "suggestions"] }
 
 # Data
 serde = { version = "1.0.219", features = ["derive"] }
@@ -57,142 +30,143 @@ zeroize = { version = "1", features = ["derive"] }
 
 # Logging
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.20", default-features = false, features = ["env-filter", "fmt", "ansi", "std"] }
+
+# System info (optional, behind `process-metrics` feature)
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+
+# OpenTelemetry semantic conventions (optional, behind `process-metrics` feature)
+# semconv_experimental: enables process.* metric name constants (currently experimental)
+opentelemetry-semantic-conventions = { version = "0.31", default-features = false, features = ["semconv_experimental"] }
 
 # OpenTelemetry (optional, behind `otel` feature)
-opentelemetry = { version = "0.31", optional = true }
-opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"], optional = true }
-opentelemetry_sdk = { version = "0.31", default-features = false, features = ["trace"], optional = true }
-tracing-opentelemetry = { version = "0.32", default-features = false, optional = true }
+opentelemetry = { version = "0.31", default-features = false, features = ["trace", "metrics", "logs"] }
+opentelemetry-appender-tracing = { version = "0.31", default-features = false }
+opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "logs", "metrics", "http-proto"] }
+opentelemetry_sdk = { version = "0.31", default-features = false, features = ["trace", "logs", "metrics"] }
+tracing-opentelemetry = { version = "0.32", default-features = false }
 
-[target.'cfg(unix)'.dependencies]
-libc = "0.2"
-
-[target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Pipes"] }
-
-[dev-dependencies]
+# Dev dependencies
 assert_cmd = "=2.2.0"
 predicates = "=3.1.4"
 tempfile = "=3.27.0"
+tracing-mock = "=0.1.0-beta.3"
 
 # - -------------------------------------------------------------------------------------------------
 # - Lints
 # -
-
-[lints.clippy]
-# Strict lint baseline (priority=-1 allows per-lint overrides)
+[workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
 
-# 安全性の基礎 - メモリ安全性
-redundant_clone = "warn" #							不要なclone()呼び出しを検出(パフォーマンス低下防止)
-needless_borrowed_reference = "warn" #				&ref xパターンを検出(借用の理解不足を防止)
-rc_mutex = "warn" #									Rc<Mutex<T>>を検出(Arc<Mutex<T>>推奨でスレッド安全性確保)
+# Fundamentals of Safety - Memory Safety
+redundant_clone = "warn" #							Detects unnecessary clone() calls (prevents performance degradation).
+needless_borrowed_reference = "warn" #				&ref Detect x patterns (prevent misunderstanding of borrowing)
+rc_mutex = "warn" #									Detects Rc<Mutex<T>> (Arc<Mutex<T>> is recommended to ensure thread safety).
 
-# 安全性の基礎 - エラーハンドリング
-unwrap_used = { level = "warn", priority = 1 } #	unwrap()警告(パニック防止、適切なエラー処理強制)
-expect_used = { level = "warn", priority = 1 } #	expect()警告(テスト以外では?演算子推奨)
-panic = { level = "warn", priority = 1 } #			panic! 使用警告(回復可能エラーの適切処理推奨)
-question_mark = "warn" #							?演算子使用推奨(冗長なmatch文の簡略化)
-match_result_ok = "warn" #							Result.ok()によるエラー無視を警告
-result_unit_err = "warn" #							Result<T, ()>の使用を警告(適切なエラー型使用推奨)
-result_large_err = "warn" #							大きなエラー型の使用を警告(Box化推奨)
+# Safety Fundamentals - Error Handling
+unwrap_used = { level = "warn", priority = 1 } #	unwrap() warning (to prevent panic and enforce appropriate error handling)
+expect_used = { level = "warn", priority = 1 } #	`expect()` warning (the `?` operator is recommended outside of tests).
+panic = { level = "warn", priority = 1 } #			Panic! Warning (Appropriate handling of recoverable errors is recommended)
+question_mark = "warn" #							The use of the `?` operator is recommended (to simplify redundant `match` statements).
+match_result_ok = "warn" #							Warning about ignoring errors using Result.ok()
+result_unit_err = "warn" #							Warning issued regarding the use of Result<T, ()> (appropriate error type usage recommended).
+result_large_err = "warn" #							Warning against using large error types (Boxing recommended).
 
-# 安全性の基礎 - 型安全性
-cast_possible_truncation = "warn" #					値切り捨てが起こるキャストを警告(データ損失防止)
-cast_precision_loss = "warn" #						精度損失が起こるキャストを警告(浮動小数点精度保持)
+# Safety Fundamentals - Type Safety
+cast_possible_truncation = "warn" #					Warning for casts that may result in price truncation (to prevent data loss)
+cast_precision_loss = "warn" #						Warning for casts that cause loss of precision (preserving floating-point precision)
 
-# パフォーマンス最適化 - イテレータとコレクション
-needless_collect = "warn" #							不要な.collect()を検出(中間コレクション生成回避)
-manual_find_map = "warn" #							.find().map()を.find_map()で最適化提案
-reserve_after_initialization = "warn" #				Vec容量の事前確保を推奨
-manual_filter_map = "warn" #						手動filter+mapをfilter_mapで最適化提案
-map_flatten = "warn" #								.map().flatten()を.flat_map()で最適化提案
-unnecessary_to_owned = "warn" #						不要なto_owned()呼び出しを検出(所有権移動回避)
-single_element_loop = "warn" #						1要素ループをif文で最適化提案
+# Performance Optimization - Iterators and Collections
+needless_collect = "warn" #							Detects unnecessary .collect() calls (avoids the creation of intermediate collections).
+manual_find_map = "warn" #							Optimization suggestion for .find_map() instead of .find().map()
+reserve_after_initialization = "warn" #				Prior reservation of Vec capacity is recommended.
+manual_filter_map = "warn" #						Manual filter+map optimization suggestion using filter_map
+map_flatten = "warn" #								Optimization suggestion for .map().flatten() using .flat_map()
+unnecessary_to_owned = "warn" #						Detects unnecessary to_owned() calls (avoids ownership transfer).
+single_element_loop = "warn" #						Suggested optimization for single-element loops using if statements.
 
-# パフォーマンス最適化 - 文字列処理
-inefficient_to_string = "warn" #					非効率なto_string()を検出(直接変換推奨)
-str_to_string = "warn" #							&str.to_string()を検出(String::from推奨)
+# Performance optimization - String processing
+inefficient_to_string = "warn" #					Detects inefficient to_string() calls (direct conversion recommended).
+str_to_string = "warn" #							Detects &str.to_string() (String::from recommended)
 # string_to_string is removed; covered by implicit_clone
-format_in_format_args = "warn" #					format!内のformat!を検出(直接引数推奨)
-manual_string_new = "warn" #						String::new()の代替パターンを検出
+format_in_format_args = "warn" #					Detected a format! within a format! (direct arguments recommended)
+manual_string_new = "warn" #						Detect alternative patterns for String::new()
 
-# パフォーマンス最適化 - メモリ効率
-box_collection = "warn" #							Box<Vec<T>>等を検出(直接使用推奨)
-large_enum_variant = "warn" #						大きなenum variantを検出(Box化推奨)
-trivial_regex = "warn" #							単純文字列比較でregex使用を検出
+# Performance Optimization - Memory Efficiency
+box_collection = "warn" #							Detects Box<Vec<T>> etc. (direct use recommended)
+large_enum_variant = "warn" #						Large enum variants are detected (boxing is recommended).
+trivial_regex = "warn" #							Detecting regex usage with simple string comparison
 
-# コード組織 - API設計とコンベンション
-wrong_self_convention = "warn" #					self引数の命名規則違反を検出(to_*/as_*/into_*)
-should_implement_trait = "warn" #					標準トレイト実装推奨(Display, From等)
-missing_errors_doc = "warn" #						エラー条件のドキュメント不足を警告
-missing_panics_doc = "warn" #						パニック条件のドキュメント不足を警告
-missing_safety_doc = "warn" #						unsafe関数のSAFETYドキュメント不足を警告
+# Code Organization - API Design and Conventions
+wrong_self_convention = "warn" #					Detects naming convention violations in the `self` argument (to_*/as_*/into_*).
+should_implement_trait = "warn" #					Standard trait implementation is recommended (Display, From, etc.).
+missing_errors_doc = "warn" #						Warning issued regarding insufficient documentation for error conditions.
+missing_panics_doc = "warn" #						Warning issued regarding insufficient documentation of panic conditions.
+missing_safety_doc = "warn" #						Warning: Lack of SAFETY documentation for unsafe function.
 
-# コード組織 - 複雑性管理
-cognitive_complexity = "warn" #						認知的複雑性が高い関数を警告
-too_many_lines = "warn" #							長すぎる関数を警告
-too_many_arguments = "warn" #						引数が多すぎる関数を警告
-type_complexity = "warn" #							複雑すぎる型定義を警告
+# Code Organization - Complexity Management
+cognitive_complexity = "warn" #						Warnings about cognitively complex functions
+too_many_lines = "warn" #							Warning about excessively long functions
+too_many_arguments = "warn" #						Warning issued for functions with too many arguments.
+type_complexity = "warn" #							Warning about overly complex type definitions
 
-# コード組織 - モジュール設計
-module_name_repetitions = "warn" #					モジュール名の重複を警告
-wildcard_imports = "warn" #							ワイルドカードインポート使用を警告
-pub_underscore_fields = "warn" #					pub _field使用を警告(設計問題)
-large_stack_arrays = "warn" #						大きなスタック配列を警告
+# Code organization - Module design
+module_name_repetitions = "warn" #					Warning about duplicate module names
+wildcard_imports = "warn" #							Warning about using wildcards in imports
+pub_underscore_fields = "warn" #					Warning issued regarding the use of pub_field (design issue)
+large_stack_arrays = "warn" #						Warning about large stack array
 
-# セキュリティ・品質 - デバッグとTODO管理
-dbg_macro = "warn" #								dbg!マクロを本番コードで警告
-todo = "warn" #										TODO残留を警告
-unimplemented = "warn" #							unimplemented!残留を警告
-unreachable = "warn" #								unreachable!使用を警告
+# Security & Quality - Debugging and To-Do Management
+dbg_macro = "warn" #								dbg! macros in production code warning
+todo = "warn" #										TODO warns of remaining in the group
+unimplemented = "warn" #							Unimplemented! Warning against remaining.
+unreachable = "warn" #								Unreachable! Warning: Use is prohibited.
 
-# セキュリティ・品質 - 数値とメモリ安全性
-float_cmp = "warn" #								浮動小数点の直接比較を警告
-arithmetic_side_effects = "warn" #					整数演算オーバーフローリスクを警告
-as_conversions = "warn" #							asキャストの危険性を警告
-indexing_slicing = "warn" #							範囲外アクセスリスクを警告
+# Security and Quality - Numerical and Memory Safety
+float_cmp = "warn" #								Warning against direct floating-point comparisons.
+arithmetic_side_effects = "warn" #					Warning about integer arithmetic overflow risk
+as_conversions = "warn" #							Warning about the dangers of AS casting
+indexing_slicing = "warn" #							Warning about out-of-scope access risks
 
-# セキュリティ・品質 - API安全性
-empty_drop = "warn" #								空のDrop実装を警告
-mem_forget = "warn" #								mem::forget使用を警告
-exit = "warn" #										process::exit使用を警告
-create_dir = "warn" #								create_dirよりcreate_dir_all推奨
+# Security and Quality - API Security
+empty_drop = "warn" #								Warning about empty Drop implementation
+mem_forget = "warn" #								Warning about the use of mem::forget
+exit = "warn" #										Warning about using process::exit
+create_dir = "warn" #								`create_dir_all` is recommended over `create_dir`.
 
-# セキュリティ・品質 - unsafeブロック
-undocumented_unsafe_blocks = "warn" #				unsafeブロックにSAFETYコメント必須
+# Security & Quality - unsafe block
+undocumented_unsafe_blocks = "warn" #				SAFETY comment required for unsafe blocks
 
-# セキュリティ・品質 - 出力制御
-print_stdout = "warn" #								println!/print!の使用を警告(tracing推奨)
-print_stderr = "warn" #								eprintln!/eprint!の使用を警告(tracing推奨)
+# Security and Quality - Output Control
+print_stdout = "warn" #								Warning issued for using println!/print! (tracing recommended)
+print_stderr = "warn" #								Warning against using eprintln!/eprint! (tracing recommended)
 
-# 例外設定（プロジェクトの性質上許可するもの）
+# Exception settings (those permitted due to the nature of the project)
 multiple-crate-versions = "allow"
 cargo-common-metadata = "allow"
 
-[lints.rust]
+[workspace.lints.rust]
 warnings = "warn"
-missing_debug_implementations = "warn" #			Debugトレイト未実装を警告
-missing_docs = "warn" #								pub項目のドキュメント不足を警告
+missing_debug_implementations = "warn" #			Warning about unimplemented Debug trait
+missing_docs = "warn" #								Warning about insufficient documentation for pub items.
 
 # - -------------------------------------------------------------------------------------------------
 # - Profiles
 # -
-
 [profile.dev]
-opt-level = 1 #										デバッグ実行の速度改善(コンパイル時間とのバランス)
-debug = 2 #											ワークスペースメンバーにフルデバッグ情報
+opt-level = 1 #										Improving debug execution speed (balancing it with compilation time)
+debug = 2 #											Full debugging information for workspace members
 
 [profile.dev.package."*"]
-debug = 1 #											外部依存はラインテーブルのみ(サイズ削減)
+debug = 1 #											External dependencies are limited to line tables only (size reduction).
 
 [profile.release]
-strip = "debuginfo" #									DWARF削除、シンボルテーブル(.symtab)は残す
-debug = 1 #											行テーブル生成(strip=debuginfoで削除されるがsplit-debuginfo将来対応用)
+strip = "debuginfo" #								Remove DWARF files, but keep the symbol table (.symtab).
+debug = 1 #											Row table generation (deleted by strip=debuginfo,
+#													but split-debuginfo will be supported in the future)
 lto = "thin"
 opt-level = "z"
 codegen-units = 1

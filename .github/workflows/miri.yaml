@@ -2,8 +2,6 @@
 name: Miri (UB detection)
 
 on:
-  schedule:
-    - cron: "0 0 * * 0"
   workflow_call: {}
   workflow_dispatch:
 
@@ -14,12 +12,83 @@ concurrency:
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 
 jobs:
-  miri:
-    name: Miri
+  detect-crates:
+    name: Detect target crates
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
+    permissions:
+      contents: read # Required to checkout crates/ directory listing
+      pull-requests: read # Required to list changed files in pull request
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            crates
+            .github/project-config.json
+          sparse-checkout-cone-mode: false
+
+      - name: Build crate matrix
+        id: detect
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Load exclusion list from project-config.json (FFI / subprocess — not Miri-compatible)
+            const config = JSON.parse(fs.readFileSync('.github/project-config.json', 'utf8'));
+            const excludedCrates = new Set(config.miri_excluded_crates ?? []);
+
+            // Dynamically scan crates/ directory
+            const allCrates = fs.readdirSync('crates', { withFileTypes: true })
+              .filter(d => d.isDirectory() && !excludedCrates.has(d.name))
+              .map(d => d.name);
+
+            // schedule / workflow_dispatch → all eligible crates
+            const prNumber = context.payload.pull_request?.number;
+            if (!prNumber) {
+              core.setOutput('matrix', JSON.stringify({ crate: allCrates }));
+              return;
+            }
+
+            // PR → detect which crates have .rs changes
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const filenames = files.map(f => f.filename);
+
+            const changed = allCrates.filter(crate => {
+              const prefix = `crates/${crate}/`;
+              return filenames.some(f => f.startsWith(prefix) && f.endsWith('.rs'));
+            });
+
+            // Global triggers → all eligible crates
+            const globalTriggers = [
+              /^rust-toolchain\.toml$/,
+              /^\.github\/workflows\/miri\.yaml$/,
+            ];
+            const globalChanged = filenames.some(f =>
+              globalTriggers.some(r => r.test(f))
+            );
+
+            const targets = globalChanged ? allCrates : changed;
+            core.setOutput('matrix', JSON.stringify({ crate: targets }));
+
+  miri:
+    name: Miri (${{ matrix.crate }})
+    needs: detect-crates
+    if: fromJSON(needs.detect-crates.outputs.matrix).crate[0] != null
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read # Required to checkout the repository
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect-crates.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -32,4 +101,7 @@ jobs:
           rustup override set nightly
 
       - name: Run Miri
-        run: cargo +nightly miri test
+        env:
+          MIRIFLAGS: -Zmiri-disable-isolation
+          CRATE: ${{ matrix.crate }}
+        run: cargo +nightly miri test -p "${CRATE}"

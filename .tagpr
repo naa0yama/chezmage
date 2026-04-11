@@ -49,7 +49,7 @@
 [tagpr]
 	releaseBranch = main
 	vPrefix = true
-	versionFile = "Cargo.toml"
+	versionFile = "crates/chezmage/Cargo.toml"
 	changelog = true
 	template = ".github/tagpr-template.md"
 	postVersionCommand = "cargo generate-lockfile && git add Cargo.lock"

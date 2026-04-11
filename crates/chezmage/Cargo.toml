@@ -1,0 +1,98 @@
+# - -------------------------------------------------------------------------------------------------
+# - Package
+# -
+[package]
+name = "chezmage"
+version.workspace = true
+categories = ["command-line-utilities"]
+edition.workspace = true
+keywords = ["chezmoi", "age", "gpg", "encryption"]
+license.workspace = true
+repository.workspace = true
+description = "chezmoi + memory + age: GPG-backed age encryption wrapper for chezmoi. Zero key on disk."
+
+[[bin]]
+name = "chezmage"
+path = "src/main.rs"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+disabled-strategies = ["quick-install"]
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.zip"
+pkg-fmt = "zip"
+
+# - -------------------------------------------------------------------------------------------------
+# - Features
+# -
+[features]
+default = []
+otel = [
+	"dep:opentelemetry",
+	"dep:opentelemetry_sdk",
+	"dep:opentelemetry-otlp",
+	"dep:tracing-opentelemetry",
+	"dep:opentelemetry-appender-tracing",
+	"dep:opentelemetry-semantic-conventions",
+]
+# Default-off. Collects OTel-semconv process metrics for the running process.
+# Requires the `otel` feature. Can be enabled with --features process-metrics.
+process-metrics = [
+	"otel",
+	"dep:sysinfo",
+]
+
+# - -------------------------------------------------------------------------------------------------
+# - Dependencies
+# -
+[dependencies]
+# Core
+anyhow.workspace = true
+clap.workspace = true
+
+# Data
+serde.workspace = true
+toml.workspace = true
+
+# Security
+zeroize.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# System info (optional, behind `process-metrics` feature)
+sysinfo = { workspace = true, optional = true }
+
+# OpenTelemetry semantic conventions (optional, behind `otel` feature)
+opentelemetry-semantic-conventions = { workspace = true, optional = true }
+
+# OpenTelemetry (optional, behind `otel` feature)
+opentelemetry = { workspace = true, optional = true }
+opentelemetry-appender-tracing = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
+tracing-opentelemetry = { workspace = true, optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Pipes"] }
+
+# - -------------------------------------------------------------------------------------------------
+# - Dev Dependencies
+# -
+[dev-dependencies]
+assert_cmd.workspace = true
+predicates.workspace = true
+tempfile.workspace = true
+
+# - -------------------------------------------------------------------------------------------------
+# - Lints
+# -
+[lints]
+workspace = true
