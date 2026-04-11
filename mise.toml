@@ -3,19 +3,23 @@ OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
 RUST_LOG = "warn,chezmage=trace"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
 OPENOBSERVE_VERSION = "v0.70.2"
+## renovate: datasource=github-releases packageName=babarot/gh-infra versioning=semver automerge=true
+GH_INFRA_VERSION = "v0.9.1"
 
 [tools]
-"aqua:EmbarkStudios/cargo-deny" = "0.19.0"
 "aqua:ast-grep/ast-grep" = "0.42.0"
+"aqua:cli/cli" = "2.89.0"
+"aqua:EmbarkStudios/cargo-deny" = "0.19.0"
 "aqua:taiki-e/cargo-llvm-cov" = "0.8.5"
 "aqua:watchexec/cargo-watch" = "8.5.3"
+"cargo:cargo-sweep" = "0.8.0"
 "github:rust-secure-code/cargo-auditable" = "0.7.4"
 actionlint = "1.7.12"
+codeql = { version = "latest", bin_path = "codeql", platforms = { linux-x64 = { asset_pattern = "codeql-linux64.zip" }, macos-arm64 = { asset_pattern = "codeql-osx64.zip" }, macos-x64 = { asset_pattern = "codeql-osx64.zip" }, windows-x64 = { asset_pattern = "codeql-win64.zip" } } }
 dprint = "0.53.2"
 ghalint = "1.5.3"
 usage = "3.0.0"
 zizmor = "1.16.0"
-codeql = { version = "latest", bin_path = "codeql", platforms = { linux-x64 = { asset_pattern = "codeql-linux64.zip" }, macos-arm64 = { asset_pattern = "codeql-osx64.zip" }, macos-x64 = { asset_pattern = "codeql-osx64.zip" }, windows-x64 = { asset_pattern = "codeql-win64.zip" } } }
 
 [task_config]
 includes = [".mise/overrides.toml", ".mise/tasks.toml"]

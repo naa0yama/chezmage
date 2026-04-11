@@ -77,6 +77,36 @@ jobs:
           sccache: ${{ needs.setup.outputs.sccache }}
           sccache_disable_annotations: true
 
+      - name: Cache system packages
+        if: needs.setup.outputs.apt_packages != ''
+        id: apt-cache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: ~/apt-cache
+          key: apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/rust-ci.yaml') }}
+          restore-keys: |
+            apt-v2-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Download system packages
+        if: needs.setup.outputs.apt_packages != '' && steps.apt-cache.outputs.cache-hit != 'true'
+        env:
+          APT_PACKAGES: ${{ needs.setup.outputs.apt_packages }}
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          mkdir -p ~/apt-cache
+          sudo apt-get update -qq
+          # shellcheck disable=SC2086
+          sudo apt-get install -y --no-install-recommends --download-only \
+            -o Dir::Cache::Archives="${HOME}/apt-cache" \
+            ${APT_PACKAGES}
+          sudo chown -R "$(id -u):$(id -g)" ~/apt-cache
+          rm -rf ~/apt-cache/partial ~/apt-cache/lock
+
+      - name: Install system packages
+        if: needs.setup.outputs.apt_packages != ''
+        run: sudo dpkg -i ~/apt-cache/*.deb
+
       - name: Cache mise tools
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
@@ -123,27 +153,39 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Cache cross-compilation packages
-        if: matrix.os == 'ubuntu-latest' && matrix.cross-pkgs
+      - name: Cache system packages
+        if: matrix.os == 'ubuntu-latest' && matrix.apt_packages
+        id: apt-cache
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
-          path: ~/cross-apt-cache
-          key: cross-apt-${{ runner.arch }}-${{ matrix.target }}-v1
+          path: ~/apt-cache
+          key: apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-${{ hashFiles('.github/workflows/rust-ci.yaml') }}
+          restore-keys: |
+            apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-
 
-      - name: Install cross-compilation toolchain
-        if: matrix.os == 'ubuntu-latest' && matrix.cross-pkgs
+      - name: Download system packages
+        if: matrix.os == 'ubuntu-latest' && matrix.apt_packages && steps.apt-cache.outputs.cache-hit != 'true'
         env:
-          CROSS_PKGS: ${{ matrix.cross-pkgs }}
+          APT_PACKAGES: ${{ matrix.apt_packages }}
         run: |
-          mkdir -p ~/cross-apt-cache/partial
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          mkdir -p ~/apt-cache
           sudo apt-get update -qq
           # shellcheck disable=SC2086
-          sudo apt-get install -y --no-install-recommends \
-            -o Dir::Cache::Archives="${HOME}/cross-apt-cache" \
-            ${CROSS_PKGS}
-          sudo chown -R "$(id -u):$(id -g)" ~/cross-apt-cache
+          sudo apt-get install -y --no-install-recommends --download-only \
+            -o Dir::Cache::Archives="${HOME}/apt-cache" \
+            ${APT_PACKAGES}
+          sudo chown -R "$(id -u):$(id -g)" ~/apt-cache
+          rm -rf ~/apt-cache/partial ~/apt-cache/lock
+
+      - name: Install system packages
+        if: matrix.os == 'ubuntu-latest' && matrix.apt_packages
+        shell: bash
+        run: sudo dpkg -i ~/apt-cache/*.deb
 
       - name: Add target
+        shell: bash
         env:
           TARGET: ${{ matrix.target }}
         run: rustup target add "${TARGET}"
@@ -155,6 +197,7 @@ jobs:
           sccache_disable_annotations: true
 
       - name: Check compilation for ${{ matrix.target }}
+        shell: bash
         env:
           TARGET: ${{ matrix.target }}
           SCOPE: ${{ matrix.scope }}
@@ -183,6 +226,36 @@ jobs:
         uses: ./.github/actions/act-setup-rust
         with:
           sccache: ${{ needs.setup.outputs.sccache }}
+
+      - name: Cache system packages
+        if: needs.setup.outputs.apt_packages != ''
+        id: apt-cache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: ~/apt-cache
+          key: apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/rust-ci.yaml') }}
+          restore-keys: |
+            apt-v2-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Download system packages
+        if: needs.setup.outputs.apt_packages != '' && steps.apt-cache.outputs.cache-hit != 'true'
+        env:
+          APT_PACKAGES: ${{ needs.setup.outputs.apt_packages }}
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          mkdir -p ~/apt-cache
+          sudo apt-get update -qq
+          # shellcheck disable=SC2086
+          sudo apt-get install -y --no-install-recommends --download-only \
+            -o Dir::Cache::Archives="${HOME}/apt-cache" \
+            ${APT_PACKAGES}
+          sudo chown -R "$(id -u):$(id -g)" ~/apt-cache
+          rm -rf ~/apt-cache/partial ~/apt-cache/lock
+
+      - name: Install system packages
+        if: needs.setup.outputs.apt_packages != ''
+        run: sudo dpkg -i ~/apt-cache/*.deb
 
       - name: Cache mise tools
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4

@@ -33,6 +33,14 @@ time.svg
 tmp/
 *tmp*.*
 
+# BEGIN gh-infra skills (managed by mise run gh-infra:install)
+.claude/skills/ci-cd/
+.claude/skills/file-manifest/
+.claude/skills/gh-infra/
+.claude/skills/import-into/
+.claude/skills/repository-manifest/
+# END gh-infra skills
+
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
