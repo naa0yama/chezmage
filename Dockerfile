@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.22.0@sha256:a72bffc78f7467a2d523cf7d2a0b69e81cf8bb955150de8c5c999de5a35b32a8
+# syntax=docker/dockerfile:1.23.0@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 #- -------------------------------------------------------------------------------------------------
 #- Global
 #-
