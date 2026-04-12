@@ -2,7 +2,7 @@
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
 RUST_LOG = "warn,chezmage=trace"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
-OPENOBSERVE_VERSION = "v0.70.2"
+OPENOBSERVE_VERSION = "v0.70.3"
 ## renovate: datasource=github-releases packageName=babarot/gh-infra versioning=semver automerge=true
 GH_INFRA_VERSION = "v0.9.1"
 
