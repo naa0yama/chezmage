@@ -1,14 +1,20 @@
 # Changelog
 
 ## [v0.3.3](https://github.com/naa0yama/chezmage/compare/v0.3.2...v0.3.3) - 2026-04-12
+
 ### Documentation 🗒️
+
 - chore: backport CI and review cleanup by @naa0yama in https://github.com/naa0yama/chezmage/pull/126
 - chore: migrate to workspace layout and backport boilerplate-rust by @naa0yama in https://github.com/naa0yama/chezmage/pull/176
+
 ### Dependency Updates 📦
+
 - chore(deps): update rust crate tracing-subscriber to v0.3.23 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/120
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/145
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/162
+
 ### Development Environment 🔧
+
 - chore(deps): update taiki-e/install-action action to v2.68.29 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/124
 - chore(deps): update actions-rust-lang/setup-rust-toolchain action to v1.15.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/125
 - chore(deps): update taiki-e/install-action action to v2.68.31 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/127
@@ -52,7 +58,9 @@
 - chore(deps): update taiki-e/install-action action to v2.72.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/177
 - chore(deps): update dependency usage to v3.2.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/123
 - chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/180
+
 ### Other Changes
+
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/133
 - chore(mise): fix badges orphan cleanup and rename o2 MCP key by @naa0yama in https://github.com/naa0yama/chezmage/pull/158
 - chore(deps): update dependency aqua:ast-grep/ast-grep to v0.42.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/178
