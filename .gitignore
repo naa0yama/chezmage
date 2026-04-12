@@ -15,6 +15,7 @@ target
 
 # Claude Code
 .claude/*.local.json
+.claude/scheduled_tasks.lock
 .claude/skills/lib-*/SKILL.md
 .claude/skills/tool-*/SKILL.md
 
