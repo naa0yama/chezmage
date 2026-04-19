@@ -4,7 +4,7 @@ RUST_LOG = "warn,chezmage=trace"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
 OPENOBSERVE_VERSION = "v0.70.3"
 ## renovate: datasource=github-releases packageName=babarot/gh-infra versioning=semver automerge=true
-GH_INFRA_VERSION = "v0.9.1"
+GH_INFRA_VERSION = "v0.10.0"
 
 [tools]
 "aqua:ast-grep/ast-grep" = "0.42.1"
