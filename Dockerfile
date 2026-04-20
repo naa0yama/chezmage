@@ -9,7 +9,7 @@ ARG DEBIAN_FRONTEND=noninteractive \
 	USER_GID=${USER_GID:-${USER_UID}}
 
 ## renovate: datasource=github-releases packageName=rui314/mold versioning=semver automerge=true
-ARG MOLD_VERSION=v2.40.4
+ARG MOLD_VERSION=v2.41.0
 
 # Rust tools
 ## renovate: datasource=github-releases packageName=mozilla/sccache versioning=semver automerge=true
