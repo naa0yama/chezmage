@@ -35,7 +35,6 @@ documentation:
       - any-glob-to-any-file:
           - "docs/**"
           - "README.md"
-          - "**/*.md"
 
 # Dependency management
 renovate-config:
