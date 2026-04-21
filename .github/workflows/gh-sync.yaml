@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: gh-sync
+on:
+  schedule:
+    - cron: "0 18 * * *" # daily at 03:00 JST
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: gh-sync
+  cancel-in-progress: true
+
+jobs:
+  gh-sync:
+    name: drift-issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write # Required to create/update drift issue
+    env:
+      UPSTREAM_MANIFEST: naa0yama/boilerplate-rust@main:.github/gh-sync/config.yaml
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: naa0yama/gh-sync@923c8824aa5da62d93465d67af2ffe0dba49e9d7 # v0.3.4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          upstream-manifest: ${{ env.UPSTREAM_MANIFEST }}
+          install-only: "true"
+
+      - name: Sync drift issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh-sync issue-sync \
+            --manifest .github/gh-sync/config.yaml \
+            --upstream-manifest "$UPSTREAM_MANIFEST"

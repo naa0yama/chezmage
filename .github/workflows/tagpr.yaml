@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: write # Required to create tags and update files
       pull-requests: write # Required to create and update pull requests
-      issues: write # Required to manage release issues
+      issues: read # Required to read release-related issues (tagpr official recommendation)
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -53,15 +53,42 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Wait for GitHub commit-to-PR index to settle
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          # tagpr v1.18.3 has a built-in 6-second retry window for
+          # ListPullRequestsWithCommit, which is insufficient for this
+          # repo's squash-merge workflow. Poll up to 120s so that
+          # latestPullRequest() succeeds on its first attempt.
+          # Remove this step once Songmu/tagpr extends its retry window.
+          # ref: https://github.com/Songmu/tagpr/issues/330
+          for i in $(seq 1 24); do
+            count=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/pulls" \
+              --jq 'length' 2>/dev/null || echo 0)
+            if [ "${count}" -gt 0 ]; then
+              echo "commit-to-PR index ready after ${i} attempt(s)"
+              # exit 0 ends only this run: shell; the next step still runs.
+              exit 0
+            fi
+            echo "attempt ${i}/24: index not ready, sleeping 5s"
+            sleep 5
+          done
+          # HEAD may legitimately have no PR (direct push, workflow re-run).
+          # Let tagpr's own logic decide rather than failing the job.
+          echo "::warning::commit-to-PR index did not populate within 120s; proceeding"
+
       - id: tagpr
-        uses: Songmu/tagpr@84850af451fc53753c6685a3a6a2af7beef23607 # v1.18.2
+        uses: Songmu/tagpr@9bbb945b2fb025126186661e27d55485e3fc6df6 # v1.18.3
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Parse tagpr pull request output
         id: tagpr-pr
         if: steps.tagpr.outputs.pull_request != ''
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PR_JSON: ${{ steps.tagpr.outputs.pull_request }}
         with:
@@ -89,7 +116,7 @@ jobs:
 
       - name: Commit formatted CHANGELOG.md
         if: steps.fmt-changelog.outputs.changed == 'true'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           BRANCH: ${{ steps.tagpr-pr.outputs.branch }}
         with:

@@ -3,6 +3,9 @@
 # -
 [workspace]
 resolver = "3"
+# gh-sync:keep-start
+# Project-specific dependencies are listed here.
+
 members = [
 	"crates/chezmage",
 ]
@@ -12,41 +15,47 @@ version = "0.3.2"
 edition = "2024"
 license = "AGPL-3.0-only"
 repository = "https://github.com/naa0yama/chezmage"
+# gh-sync:keep-end
 
 # - -------------------------------------------------------------------------------------------------
 # - Dependencies
 # -
 [workspace.dependencies]
-# Core
-anyhow = "1.0"
-clap = { version = "4.5.45", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color", "suggestions"] }
+# gh-sync:keep-start
+# Project-specific dependencies are listed here.
 
-# Data
+## Data
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "1.0"
 
-# Security
+## Security
 zeroize = { version = "1", features = ["derive"] }
 
-# Logging
+# gh-sync:keep-end
+
+## Core
+anyhow = "1.0"
+clap = { version = "4.5.45", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color", "suggestions"] }
+
+## Logging
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["env-filter", "fmt", "ansi", "std"] }
 
-# System info (optional, behind `process-metrics` feature)
+## System info (optional, behind `process-metrics` feature)
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 
-# OpenTelemetry semantic conventions (optional, behind `process-metrics` feature)
-# semconv_experimental: enables process.* metric name constants (currently experimental)
+## OpenTelemetry semantic conventions (optional, behind `process-metrics` feature)
+## semconv_experimental: enables process.* metric name constants (currently experimental)
 opentelemetry-semantic-conventions = { version = "0.31", default-features = false, features = ["semconv_experimental"] }
 
-# OpenTelemetry (optional, behind `otel` feature)
+## OpenTelemetry (optional, behind `otel` feature)
 opentelemetry = { version = "0.31", default-features = false, features = ["trace", "metrics", "logs"] }
 opentelemetry-appender-tracing = { version = "0.31", default-features = false }
-opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "logs", "metrics", "http-proto"] }
+opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "logs", "metrics", "http-proto", "reqwest-blocking-client"] }
 opentelemetry_sdk = { version = "0.31", default-features = false, features = ["trace", "logs", "metrics"] }
 tracing-opentelemetry = { version = "0.32", default-features = false }
 
-# Dev dependencies
+## Dev dependencies
 assert_cmd = "=2.2.0"
 predicates = "=3.1.4"
 tempfile = "=3.27.0"
@@ -61,12 +70,12 @@ pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
 
-# Fundamentals of Safety - Memory Safety
+## Fundamentals of Safety - Memory Safety
 redundant_clone = "warn" #							Detects unnecessary clone() calls (prevents performance degradation).
-needless_borrowed_reference = "warn" #				&ref Detect x patterns (prevent misunderstanding of borrowing)
+needless_borrowed_reference = "warn" #				Detects &ref x patterns (prevents misunderstanding of borrowing)
 rc_mutex = "warn" #									Detects Rc<Mutex<T>> (Arc<Mutex<T>> is recommended to ensure thread safety).
 
-# Safety Fundamentals - Error Handling
+## Safety Fundamentals - Error Handling
 unwrap_used = { level = "warn", priority = 1 } #	unwrap() warning (to prevent panic and enforce appropriate error handling)
 expect_used = { level = "warn", priority = 1 } #	`expect()` warning (the `?` operator is recommended outside of tests).
 panic = { level = "warn", priority = 1 } #			Panic! Warning (Appropriate handling of recoverable errors is recommended)
@@ -75,11 +84,11 @@ match_result_ok = "warn" #							Warning about ignoring errors using Result.ok()
 result_unit_err = "warn" #							Warning issued regarding the use of Result<T, ()> (appropriate error type usage recommended).
 result_large_err = "warn" #							Warning against using large error types (Boxing recommended).
 
-# Safety Fundamentals - Type Safety
-cast_possible_truncation = "warn" #					Warning for casts that may result in price truncation (to prevent data loss)
+## Safety Fundamentals - Type Safety
+cast_possible_truncation = "warn" #					Warning for casts that may result in value truncation (to prevent data loss)
 cast_precision_loss = "warn" #						Warning for casts that cause loss of precision (preserving floating-point precision)
 
-# Performance Optimization - Iterators and Collections
+## Performance Optimization - Iterators and Collections
 needless_collect = "warn" #							Detects unnecessary .collect() calls (avoids the creation of intermediate collections).
 manual_find_map = "warn" #							Optimization suggestion for .find_map() instead of .find().map()
 reserve_after_initialization = "warn" #				Prior reservation of Vec capacity is recommended.
@@ -88,63 +97,63 @@ map_flatten = "warn" #								Optimization suggestion for .map().flatten() using
 unnecessary_to_owned = "warn" #						Detects unnecessary to_owned() calls (avoids ownership transfer).
 single_element_loop = "warn" #						Suggested optimization for single-element loops using if statements.
 
-# Performance optimization - String processing
+## Performance optimization - String processing
 inefficient_to_string = "warn" #					Detects inefficient to_string() calls (direct conversion recommended).
 str_to_string = "warn" #							Detects &str.to_string() (String::from recommended)
-# string_to_string is removed; covered by implicit_clone
+## string_to_string is removed; covered by implicit_clone
 format_in_format_args = "warn" #					Detected a format! within a format! (direct arguments recommended)
 manual_string_new = "warn" #						Detect alternative patterns for String::new()
 
-# Performance Optimization - Memory Efficiency
+## Performance Optimization - Memory Efficiency
 box_collection = "warn" #							Detects Box<Vec<T>> etc. (direct use recommended)
 large_enum_variant = "warn" #						Large enum variants are detected (boxing is recommended).
 trivial_regex = "warn" #							Detecting regex usage with simple string comparison
 
-# Code Organization - API Design and Conventions
+## Code Organization - API Design and Conventions
 wrong_self_convention = "warn" #					Detects naming convention violations in the `self` argument (to_*/as_*/into_*).
 should_implement_trait = "warn" #					Standard trait implementation is recommended (Display, From, etc.).
 missing_errors_doc = "warn" #						Warning issued regarding insufficient documentation for error conditions.
 missing_panics_doc = "warn" #						Warning issued regarding insufficient documentation of panic conditions.
 missing_safety_doc = "warn" #						Warning: Lack of SAFETY documentation for unsafe function.
 
-# Code Organization - Complexity Management
+## Code Organization - Complexity Management
 cognitive_complexity = "warn" #						Warnings about cognitively complex functions
 too_many_lines = "warn" #							Warning about excessively long functions
 too_many_arguments = "warn" #						Warning issued for functions with too many arguments.
 type_complexity = "warn" #							Warning about overly complex type definitions
 
-# Code organization - Module design
+## Code organization - Module design
 module_name_repetitions = "warn" #					Warning about duplicate module names
 wildcard_imports = "warn" #							Warning about using wildcards in imports
-pub_underscore_fields = "warn" #					Warning issued regarding the use of pub_field (design issue)
+pub_underscore_fields = "warn" #					Warning issued regarding the use of pub _field (design issue)
 large_stack_arrays = "warn" #						Warning about large stack array
 
-# Security & Quality - Debugging and To-Do Management
+## Security & Quality - Debugging and To-Do Management
 dbg_macro = "warn" #								dbg! macros in production code warning
-todo = "warn" #										TODO warns of remaining in the group
-unimplemented = "warn" #							Unimplemented! Warning against remaining.
-unreachable = "warn" #								Unreachable! Warning: Use is prohibited.
+todo = "warn" #										Warns about remaining todo! macros
+unimplemented = "warn" #							Warns about remaining unimplemented! macros
+unreachable = "warn" #								Warns about use of unreachable! macros
 
-# Security and Quality - Numerical and Memory Safety
+## Security and Quality - Numerical and Memory Safety
 float_cmp = "warn" #								Warning against direct floating-point comparisons.
 arithmetic_side_effects = "warn" #					Warning about integer arithmetic overflow risk
-as_conversions = "warn" #							Warning about the dangers of AS casting
-indexing_slicing = "warn" #							Warning about out-of-scope access risks
+as_conversions = "warn" #							Warning about the dangers of as casting
+indexing_slicing = "warn" #							Warning about out-of-bounds access risks
 
-# Security and Quality - API Security
+## Security and Quality - API Security
 empty_drop = "warn" #								Warning about empty Drop implementation
 mem_forget = "warn" #								Warning about the use of mem::forget
 exit = "warn" #										Warning about using process::exit
 create_dir = "warn" #								`create_dir_all` is recommended over `create_dir`.
 
-# Security & Quality - unsafe block
+## Security & Quality - unsafe block
 undocumented_unsafe_blocks = "warn" #				SAFETY comment required for unsafe blocks
 
-# Security and Quality - Output Control
+## Security and Quality - Output Control
 print_stdout = "warn" #								Warning issued for using println!/print! (tracing recommended)
 print_stderr = "warn" #								Warning against using eprintln!/eprint! (tracing recommended)
 
-# Exception settings (those permitted due to the nature of the project)
+## Exception settings (those permitted due to the nature of the project)
 multiple-crate-versions = "allow"
 cargo-common-metadata = "allow"
 
@@ -165,7 +174,7 @@ debug = 1 #											External dependencies are limited to line tables only (siz
 
 [profile.release]
 strip = "debuginfo" #								Remove DWARF files, but keep the symbol table (.symtab).
-debug = 1 #											Row table generation (deleted by strip=debuginfo,
+debug = 1 #											Line table generation (deleted by strip=debuginfo,
 #													but split-debuginfo will be supported in the future)
 lto = "thin"
 opt-level = "z"

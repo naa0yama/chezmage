@@ -50,7 +50,7 @@ for f in "$DASHBOARDS_DIR"/*.json; do
     continue
   fi
 
-  status=$(curl -s --retry 3 --retry-delay 2 --retry-connrefused -o /dev/null -w '%{http_code}' \
+  status=$(curl -sf --retry 3 --retry-delay 2 --retry-connrefused -o /dev/null -w '%{http_code}' \
     -u "$AUTH" \
     -H 'Content-Type: application/json' \
     -X POST "${BASE}/api/${ORG}/dashboards" \

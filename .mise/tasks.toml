@@ -47,18 +47,28 @@ echo 'OpenObserve restarted with clean state'
 cargo test --all-targets
 """
 
+# I/O-only and TUI functions in gh-sync are excluded via #[cfg_attr(coverage_nightly, coverage(off))].
+# cargo-llvm-cov automatically sets --cfg coverage_nightly when using a nightly toolchain,
+# which activates the #[coverage(off)] attribute on annotated functions.
+# No --ignore-filename-regex needed: exclusion is per-function, not per-file.
 [coverage]
 description = "Generate LCOV coverage report and verify thresholds"
 env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
 run = """
-cargo llvm-cov --all-features --fail-under-lines 90
-cargo llvm-cov --all-features --lcov --output-path target/lcov.info
+rustup component add llvm-tools-preview --toolchain nightly-2026-01-15
+
+cargo +nightly-2026-01-15 llvm-cov --all-features --fail-under-lines 90
+cargo +nightly-2026-01-15 llvm-cov --all-features --lcov --output-path target/lcov.info
 """
 
 ["coverage:html"]
 description = "Generate HTML coverage report and open"
 env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
-run = "cargo llvm-cov --all-features --html --open"
+run = """
+rustup component add llvm-tools-preview --toolchain nightly-2026-01-15
+
+cargo +nightly-2026-01-15 llvm-cov --all-features --html --open
+"""
 
 [fmt]
 description = "Run all formatters"
@@ -140,94 +150,6 @@ case "$(uname -s)" in
 	*) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
 esac
 curl -sfSL --retry 3 --retry-delay 2 --retry-connrefused https://claude.ai/install.sh | bash
-"""
-
-["gh-infra:install"]
-description = "Deploy gh-infra skills into .claude/skills and install the gh extension (pinned to GH_INFRA_VERSION)"
-run = """
-set -euo pipefail
-
-version="${GH_INFRA_VERSION}"
-repo_url="https://github.com/babarot/gh-infra.git"
-cache_dir="target/tmp/gh-infra"
-src_skills="${cache_dir}/.agents/skills"
-dst_skills=".claude/skills"
-
-if ! command -v gh > /dev/null 2>&1; then
-  echo 'Error: gh CLI not found. Run "mise install" first.' >&2
-  exit 1
-fi
-
-# 1. Cache-aware shallow clone at the tag
-need_clone=1
-if [ -d "${cache_dir}/.git" ]; then
-  current="$(git -C "${cache_dir}" describe --tags --exact-match 2>/dev/null || true)"
-  if [ "${current}" = "${version}" ]; then
-    need_clone=0
-    echo "gh-infra source already at ${version} (${cache_dir})"
-  fi
-fi
-if [ "${need_clone}" -eq 1 ]; then
-  rm -rf "${cache_dir}"
-  mkdir -p "$(dirname "${cache_dir}")"
-  echo "Cloning gh-infra ${version} into ${cache_dir}..."
-  git clone --depth 1 --branch "${version}" -c advice.detachedHead=false "${repo_url}" "${cache_dir}"
-fi
-
-# 2. Deploy .agents/skills/* into .claude/skills/
-if [ ! -d "${src_skills}" ]; then
-  echo "Error: ${src_skills} not found in gh-infra ${version}" >&2
-  exit 1
-fi
-mkdir -p "${dst_skills}"
-deployed=""
-gitignore_entries=""
-for src in "${src_skills}"/*/; do
-  [ -d "${src}" ] || continue
-  name="$(basename "${src}")"
-  rm -rf "${dst_skills}/${name}"
-  cp -r "${src}" "${dst_skills}/${name}"
-  deployed="${deployed} ${name}"
-  gitignore_entries="${gitignore_entries}.claude/skills/${name}/
-"
-done
-echo "Deployed skills:${deployed}"
-
-# Update .gitignore: replace managed block in-place, or append if not present
-begin_marker="# BEGIN gh-infra skills (managed by mise run gh-infra:install)"
-end_marker="# END gh-infra skills"
-gitignore=".gitignore"
-new_block="${begin_marker}
-${gitignore_entries}${end_marker}"
-if grep -qF "${begin_marker}" "${gitignore}"; then
-  tmpfile="$(mktemp)"
-  block_file="$(mktemp)"
-  printf '%s\n' "${new_block}" > "${block_file}"
-  awk -v bf="${block_file}" '
-    /# BEGIN gh-infra skills/ { while ((getline line < bf) > 0) print line; skip=1; next }
-    /# END gh-infra skills/   { skip=0; next }
-    !skip                      { print }
-  ' "${gitignore}" > "${tmpfile}"
-  rm -f "${block_file}"
-  mv "${tmpfile}" "${gitignore}"
-else
-  printf '%s\n' "${new_block}" >> "${gitignore}"
-fi
-echo "Updated ${gitignore} with gh-infra skill entries"
-
-# 3. gh extension install (idempotent, pinned)
-installed="$(gh extension list 2>/dev/null | awk '$2 == "babarot/gh-infra" {print $3}')"
-if [ "${installed}" = "${version}" ]; then
-  echo "gh-infra extension ${version} already installed."
-else
-  if [ -n "${installed}" ]; then
-    echo "Upgrading gh-infra extension ${installed} -> ${version}"
-    gh extension remove babarot/gh-infra
-  fi
-  gh extension install babarot/gh-infra --pin "${version}"
-fi
-
-gh extension list | grep babarot/gh-infra || true
 """
 
 ["badges:init"]

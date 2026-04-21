@@ -7,15 +7,21 @@
 		{
 			"type": "lldb",
 			"request": "launch",
+			// gh-sync:keep-start
 			"name": "Debug executable 'chezmage'",
+			// gh-sync:keep-end
 			"cargo": {
 				"args": [
 					"build",
+					// gh-sync:keep-start
 					"--bin=chezmage",
 					"--package=chezmage"
+					// gh-sync:keep-end
 				],
 				"filter": {
+					// gh-sync:keep-start
 					"name": "chezmage",
+					// gh-sync:keep-end
 					"kind": "bin"
 				}
 			},
@@ -25,16 +31,22 @@
 		{
 			"type": "lldb",
 			"request": "launch",
+			// gh-sync:keep-start
 			"name": "Debug unit tests in executable 'chezmage'",
+			// gh-sync:keep-end
 			"cargo": {
 				"args": [
 					"test",
 					"--no-run",
+					// gh-sync:keep-start
 					"--bin=chezmage",
 					"--package=chezmage"
+					// gh-sync:keep-end
 				],
 				"filter": {
+					// gh-sync:keep-start
 					"name": "chezmage",
+					// gh-sync:keep-end
 					"kind": "bin"
 				}
 			},

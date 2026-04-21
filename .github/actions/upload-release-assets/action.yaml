@@ -131,12 +131,22 @@ runs:
         set -euo pipefail
         shopt -s failglob
 
-        # Verify the release exists (tagpr creates it synchronously before this workflow runs)
+        # Verify the release exists (tagpr creates it as draft before this workflow runs)
         release_url="$(gh release view "${TAG}" --json url --jq '.url')"
         echo "Release found: ${release_url}"
 
         gh release upload "${TAG}" release-assets/* --clobber
         echo "url=${release_url}" >> "$GITHUB_OUTPUT"
+
+    - name: Publish release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+        gh release edit "${TAG}" --draft=false --latest
+        echo "Release ${TAG} published successfully"
 
     - name: Release summary
       shell: bash
