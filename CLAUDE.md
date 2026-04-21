@@ -39,7 +39,6 @@ All tasks use `mise run <task>`:
 | Build (OTel)          | `mise run build -- --features otel` |
 | Badges (init)         | `mise run badges:init`              |
 | Claude Code (install) | `mise run claudecode:install`       |
-| GH Infra (install)    | `mise run gh-infra:install`         |
 | O2 (install)          | `mise run o2:install`               |
 | O2 (start)            | `mise run o2`                       |
 | O2 (stop)             | `mise run o2:stop`                  |
