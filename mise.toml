@@ -26,4 +26,4 @@ usage = "3.2.0"
 zizmor = "1.16.0"
 
 [task_config]
-includes = [".mise/overrides.toml", ".mise/tasks.toml"]
+includes = [".mise/tasks.toml", ".mise/overrides.toml"]
