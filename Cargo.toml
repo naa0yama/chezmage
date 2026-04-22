@@ -24,6 +24,9 @@ repository = "https://github.com/naa0yama/chezmage"
 # gh-sync:keep-start
 # Project-specific dependencies are listed here.
 
+## Core
+clap = { version = "4.5.45", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color", "suggestions"] }
+
 ## Data
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "1.0"
@@ -35,7 +38,6 @@ zeroize = { version = "1", features = ["derive"] }
 
 ## Core
 anyhow = "1.0"
-clap = { version = "4.5.45", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color", "suggestions"] }
 
 ## Logging
 tracing = "0.1.41"
