@@ -63,6 +63,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 	sudo \
 	wget
 
+# gh-sync:keep-start
+# Project-specific dependencies are listed here.
+
+# gh-sync:keep-end
 
 RUN echo "**** Create user ****" && \
 	set -euxo pipefail && \
