@@ -1,5 +1,5 @@
 {
-	"cli_toml": "Cargo.toml",
+	"cli_toml": "crates/chezmage/Cargo.toml",
 	"miri_excluded_crates": [],
 	"timeout_minutes": 15,
 	"apt_packages": "",
