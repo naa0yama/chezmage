@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: naa0yama/gh-sync@923c8824aa5da62d93465d67af2ffe0dba49e9d7 # v0.3.4
+      - uses: naa0yama/gh-sync@e667e77f406fbc2d45c604886234e95ab59b5e67 # v0.3.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           upstream-manifest: ${{ env.UPSTREAM_MANIFEST }}
