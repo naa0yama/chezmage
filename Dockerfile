@@ -186,3 +186,4 @@ alias cc="claude --dangerously-skip-permissions"
 
 _DOC_
 EOF
+

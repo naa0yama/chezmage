@@ -44,6 +44,11 @@ All tasks use `mise run <task>`:
 | O2 (stop)             | `mise run o2:stop`                  |
 | CodeQL (install)      | `mise run codeql:install`           |
 | CodeQL (analyze)      | `mise run codeql`                   |
+| Traefik (setup)       | `mise run traefik:setup`            |
+| Dev (up)              | `mise run dev:up`                   |
+| Dev (down)            | `mise run dev:down`                 |
+| Dev (exec)            | `mise run dev:exec`                 |
+| Dev (status)          | `mise run dev:status`               |
 
 ## Commit Convention
 

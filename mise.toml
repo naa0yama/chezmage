@@ -11,15 +11,14 @@ RUST_LOG = "warn,chezmage=trace"
 
 [tools]
 "aqua:ast-grep/ast-grep" = "0.42.1"
-"aqua:cli/cli" = "2.89.0"
+"aqua:cli/cli" = "2.90.0"
 "aqua:EmbarkStudios/cargo-deny" = "0.19.4"
 "aqua:taiki-e/cargo-llvm-cov" = "0.8.5"
 "aqua:watchexec/cargo-watch" = "8.5.3"
 "cargo:cargo-sweep" = "0.8.0"
-"github:naa0yama/gh-sync" = "0.3.5"
+"github:naa0yama/gh-sync" = "0.3.6"
 "github:rust-secure-code/cargo-auditable" = "0.7.4"
 actionlint = "1.7.12"
-codeql = { version = "latest", bin_path = "codeql", platforms = { linux-x64 = { asset_pattern = "codeql-linux64.zip" }, macos-arm64 = { asset_pattern = "codeql-osx64.zip" }, macos-x64 = { asset_pattern = "codeql-osx64.zip" }, windows-x64 = { asset_pattern = "codeql-win64.zip" } } }
 dprint = "0.54.0"
 ghalint = "1.5.3"
 usage = "3.2.1"
