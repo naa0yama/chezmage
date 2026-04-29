@@ -1,12 +1,18 @@
 # Changelog
 
 ## [v0.3.5](https://github.com/naa0yama/chezmage/compare/v0.3.4...v0.3.5) - 2026-04-29
+
 ### Features 🎉
+
 - feat(otel): backport boilerplate-rust + complete OTel pipeline by @naa0yama in https://github.com/naa0yama/chezmage/pull/229
+
 ### Dependency Updates 📦
+
 - chore(deps): update rust crate assert_cmd to v2.2.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/222
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/225
+
 ### Development Environment 🔧
+
 - chore(deps): update devcontainers/ci action to v0.3.1900000448 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/217
 - chore(deps): update taiki-e/install-action action to v2.75.16 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/220
 - chore(deps): update devcontainers/ci action to v0.3.1900000449 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/221
