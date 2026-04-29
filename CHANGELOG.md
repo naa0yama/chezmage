@@ -1,5 +1,26 @@
 # Changelog
 
+## [v0.3.5](https://github.com/naa0yama/chezmage/compare/v0.3.4...v0.3.5) - 2026-04-29
+### Features 🎉
+- feat(otel): backport boilerplate-rust + complete OTel pipeline by @naa0yama in https://github.com/naa0yama/chezmage/pull/229
+### Dependency Updates 📦
+- chore(deps): update rust crate assert_cmd to v2.2.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/222
+- chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/225
+### Development Environment 🔧
+- chore(deps): update devcontainers/ci action to v0.3.1900000448 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/217
+- chore(deps): update taiki-e/install-action action to v2.75.16 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/220
+- chore(deps): update devcontainers/ci action to v0.3.1900000449 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/221
+- chore(deps): update taiki-e/install-action action to v2.75.17 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/223
+- chore(deps): update taiki-e/install-action action to v2.75.18 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/224
+- chore(deps): update naa0yama/gh-sync action to v0.3.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/226
+- chore(deps): update taiki-e/install-action action to v2.75.19 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/227
+- chore(deps): update dependency usage to v3.2.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/228
+- chore(deps): update dependency ghalint to v1.5.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/230
+- chore(deps): update dependency zizmor to v1.16.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/231
+- chore(deps): update dependency aqua:cli/cli to v2.91.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/218
+- chore(deps): update dependency zizmor to v1.24.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/232
+- Delete .github/workflows/gh-sync.yaml by @naa0yama in https://github.com/naa0yama/chezmage/pull/233
+
 ## [v0.3.4](https://github.com/naa0yama/chezmage/compare/v0.3.3...v0.3.4) - 2026-04-23
 
 ### Bug Fixes 🐌
