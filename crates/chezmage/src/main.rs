@@ -20,6 +20,9 @@ pub mod gpg;
 pub mod secure;
 /// Shim mode (age stdin pipe).
 pub mod shim;
+/// `OTel` provider initialization, shutdown, and process metrics.
+#[cfg(feature = "otel")]
+mod telemetry;
 /// Wrapper mode (identity discovery + chezmoi exec).
 pub mod wrapper;
 
@@ -30,13 +33,14 @@ use std::env;
 use std::io::Write as _;
 
 use clap::Parser;
-use tracing_subscriber::filter::EnvFilter;
 #[cfg(not(feature = "otel"))]
-use tracing_subscriber::fmt;
+use tracing_subscriber::filter::EnvFilter;
+
+/// `OTel` provider handle for shutdown; `()` when the `otel` feature is disabled.
 #[cfg(feature = "otel")]
-use tracing_subscriber::layer::SubscriberExt;
-#[cfg(feature = "otel")]
-use tracing_subscriber::util::SubscriberInitExt;
+type OtelHandle = telemetry::OtelProviders;
+#[cfg(not(feature = "otel"))]
+type OtelHandle = ();
 
 /// Application version string including git revision.
 const APP_VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (rev:", env!("GIT_HASH"), ")",);
@@ -82,63 +86,64 @@ fn main() {
         }
     } else {
         // Wrapper mode: init tracing normally
-        init_tracing();
+        let otel_handle = init_tracing();
         let _args = Args::parse();
 
-        if let Err(e) = wrapper::run() {
-            tracing::error!("{e:#}");
+        let exit_code = {
+            // Keep process metric handles alive until this block exits,
+            // ensuring de-registration happens before meter provider shutdown.
+            #[cfg(all(feature = "process-metrics", not(miri)))]
+            let _pm = {
+                let meter = opentelemetry::global::meter(env!("CARGO_PKG_NAME"));
+                telemetry::ProcessMetricHandles::register(&meter)
+            };
+
+            // Root span wraps all command processing so child spans share a
+            // single trace_id. Block scope ensures the span exits before shutdown.
+            let root = tracing::info_span!("main");
+            let _guard = root.enter();
+            if let Err(e) = wrapper::run() {
+                tracing::error!("{e:#}");
+                1i32
+            } else {
+                0i32
+            }
+        }; // _pm drops here — before shutdown_tracing
+
+        shutdown_tracing(otel_handle);
+
+        if exit_code != 0 {
             #[allow(clippy::exit)]
-            std::process::exit(1);
+            std::process::exit(exit_code);
         }
     }
 }
 
-/// Initialize tracing subscriber with optional OpenTelemetry layer.
+/// Initialize tracing subscriber (fmt only, no `OTel`).
 // NOTEST(infra): tracing subscriber can only be initialized once per process
-fn init_tracing() {
-    #[cfg(not(feature = "otel"))]
-    {
-        fmt()
-            .with_env_filter(
-                EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-            )
-            .init();
-    }
-
-    #[cfg(feature = "otel")]
-    {
-        let env_filter =
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-        let fmt_layer = tracing_subscriber::fmt::layer();
-
-        // SECURITY: Do not add process.command_args or process.environment
-        // resource detectors — they may expose identity file paths or the
-        // CHEZMOI_AGE_KEY environment variable to the OTel collector.
-        let otel_layer = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
-            .ok()
-            .and_then(|_| {
-                let exporter = opentelemetry_otlp::SpanExporter::builder()
-                    .with_http()
-                    .build()
-                    .ok()?;
-
-                let tracer_provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
-                    .with_simple_exporter(exporter)
-                    .build();
-
-                let tracer = opentelemetry::trace::TracerProvider::tracer(
-                    &tracer_provider,
-                    env!("CARGO_PKG_NAME"),
-                );
-                opentelemetry::global::set_tracer_provider(tracer_provider);
-
-                Some(tracing_opentelemetry::layer().with_tracer(tracer))
-            });
-
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(fmt_layer)
-            .with(otel_layer)
-            .init();
-    }
+#[cfg(not(feature = "otel"))]
+fn init_tracing() -> OtelHandle {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
 }
+
+/// Initialize tracing subscriber with all three `OTel` providers.
+// NOTEST(infra): tracing subscriber can only be initialized once per process
+#[cfg(feature = "otel")]
+fn init_tracing() -> OtelHandle {
+    telemetry::init_tracing()
+}
+
+/// Flush and shut down `OTel` providers before process exit.
+// NOTEST(infra): OTel provider shutdown
+#[cfg(feature = "otel")]
+fn shutdown_tracing(handle: OtelHandle) {
+    telemetry::shutdown_otel(handle);
+}
+
+/// No-op when the `otel` feature is disabled.
+#[cfg(not(feature = "otel"))]
+fn shutdown_tracing(_handle: OtelHandle) {}

@@ -153,6 +153,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "clap",
+ "gethostname",
  "libc",
  "opentelemetry",
  "opentelemetry-appender-tracing",
@@ -356,6 +357,16 @@ dependencies = [
  "memchr",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "gethostname"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bd49230192a3797a9a4d6abe9b3eed6f7fa4c8a8a4947977c6f80025f92cbd8"
+dependencies = [
+ "rustix",
+ "windows-link",
 ]
 
 [[package]]

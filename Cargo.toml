@@ -50,6 +50,9 @@ sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 ## semconv_experimental: enables process.* metric name constants (currently experimental)
 opentelemetry-semantic-conventions = { version = "0.31", default-features = false, features = ["semconv_experimental"] }
 
+## Hostname (optional, behind `otel` feature)
+gethostname = "1.1.0"
+
 ## OpenTelemetry (optional, behind `otel` feature)
 opentelemetry = { version = "0.31", default-features = false, features = ["trace", "metrics", "logs"] }
 opentelemetry-appender-tracing = { version = "0.31", default-features = false }
