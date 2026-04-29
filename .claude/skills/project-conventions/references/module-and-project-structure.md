@@ -8,6 +8,7 @@
 ```
 src/
   main.rs              # CLI entry point (clap derive)
+  telemetry.rs         # OTel provider init, shutdown, process metrics (otel feature only)
   libs.rs              # Top-level library module
   libs/
     syoboi/            # Feature module (API client)
@@ -39,9 +40,17 @@ ast-rules/
   [features]
   default = []
   otel = [
+  	"dep:gethostname",
   	"dep:opentelemetry",
   	"dep:opentelemetry_sdk",
   	"dep:opentelemetry-otlp",
   	"dep:tracing-opentelemetry",
+  	"dep:opentelemetry-appender-tracing",
+  	"dep:opentelemetry-semantic-conventions",
+  ]
+  # Opt-in process metrics (requires otel feature)
+  process-metrics = [
+  	"otel",
+  	"dep:sysinfo",
   ]
   ```

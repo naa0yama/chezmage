@@ -31,6 +31,7 @@ pkg-fmt = "zip"
 [features]
 default = []
 otel = [
+	"dep:gethostname",
 	"dep:opentelemetry",
 	"dep:opentelemetry_sdk",
 	"dep:opentelemetry-otlp",
@@ -66,6 +67,9 @@ tracing-subscriber.workspace = true
 
 # System info (optional, behind `process-metrics` feature)
 sysinfo = { workspace = true, optional = true }
+
+# Hostname (optional, behind `otel` feature)
+gethostname = { workspace = true, optional = true }
 
 # OpenTelemetry semantic conventions (optional, behind `otel` feature)
 opentelemetry-semantic-conventions = { workspace = true, optional = true }
