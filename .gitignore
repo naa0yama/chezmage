@@ -49,5 +49,9 @@ src-tauri/gen/
 *.msi
 *.nsis
 
+# gh-sync:keep-start
+# Project-specific dependencies are listed here.
+
+# gh-sync:keep-end
 
 # Under the unknown

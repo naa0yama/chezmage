@@ -12,5 +12,7 @@ components = [
 ]
 targets = [
 	"x86_64-unknown-linux-gnu",
+	# gh-sync:keep-start
+	# gh-sync:keep-end
 ]
 profile = "default"

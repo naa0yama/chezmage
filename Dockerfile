@@ -79,6 +79,12 @@ RUN echo "**** Add sudo user ****" && \
 	set -euxo pipefail && \
 	echo -e "${USER_NAME}\tALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${USER_NAME}"
 
+RUN echo "**** Create XDG runtime dir ****" && \
+	set -euxo pipefail && \
+	mkdir -p /run/user/${USER_UID}/gnupg && \
+	chown -R ${USER_NAME}:${USER_NAME} /run/user/${USER_UID} && \
+	chmod 700 /run/user/${USER_UID} /run/user/${USER_UID}/gnupg
+
 RUN echo "**** Install mold ****" && \
 	set -euxo pipefail && \
 	_release_data="$(curl ${CURL_OPTS} -H 'User-Agent: builder/1.0' \
@@ -138,13 +144,22 @@ ENV CARGO_HOME=/home/${USER_NAME}/.cargo
 RUN echo "**** Directory Create ****" && \
 	set -euxo pipefail && \
 	mkdir -p \
+	~/.claude \
 	~/.config \
+	~/.config/gh \
 	~/.config/mise \
+	~/.gitconfig.d \
+	~/.gnupg \
 	~/.local \
 	~/.local/bin \
 	~/.local/share \
 	~/.local/share/claude \
-	~/.local/share/mise
+	~/.local/share/mise && \
+	chmod 700 ~/.gnupg && \
+	touch \
+	~/.claude.json \
+	~/.gitconfig \
+	~/.gnupg/pubring.kbx
 
 RUN echo "**** Create ${CARGO_HOME} ****" && \
 	set -euxo pipefail && \
@@ -182,6 +197,8 @@ case ":$PATH:" in
 	*:"$HOME/.local/bin":*) ;;
 	*) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export GPG_TTY=$(tty 2>/dev/null || true)
 alias cc="claude --dangerously-skip-permissions"
 
 _DOC_
