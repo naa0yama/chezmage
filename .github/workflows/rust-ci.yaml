@@ -127,7 +127,7 @@ jobs:
         with:
           cache: false
           # renovate: datasource=github-releases packageName=jdx/mise versioning=calver:YYYY.M.D automerge=true
-          version: 2026.4.22
+          version: 2026.4.23
 
       - name: Check formatting
         run: |
@@ -271,7 +271,7 @@ jobs:
         with:
           cache: false
           # renovate: datasource=github-releases packageName=jdx/mise versioning=calver:YYYY.M.D automerge=true
-          version: 2026.4.22
+          version: 2026.4.23
 
       - name: Generate coverage report
         run: |
