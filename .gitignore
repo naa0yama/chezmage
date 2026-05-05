@@ -49,5 +49,9 @@ src-tauri/gen/
 *.msi
 *.nsis
 
+# graft:keep-start
+# Project-specific dependencies are listed here.
+
+# graft:keep-end
 
 # Under the unknown
