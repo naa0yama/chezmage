@@ -49,7 +49,7 @@ echo 'OpenObserve restarted with clean state'
 cargo test --all-targets
 """
 
-# I/O-only and TUI functions in gh-sync are excluded via #[cfg_attr(coverage_nightly, coverage(off))].
+# I/O-only and TUI functions in graft are excluded via #[cfg_attr(coverage_nightly, coverage(off))].
 # cargo-llvm-cov automatically sets --cfg coverage_nightly when using a nightly toolchain,
 # which activates the #[coverage(off)] attribute on annotated functions.
 # No --ignore-filename-regex needed: exclusion is per-function, not per-file.
@@ -347,35 +347,21 @@ echo "${alerts}"
 """
 
 ["traefik:setup"]
-description = "Setup traefik as systemd user service for devcontainer routing (WSL2 host, run once)"
-run = ".devcontainer/traefik.sh setup"
+description = "Setup Traefik as systemd user service for devcontainer routing (run once on host)"
+run = "graft denv traefik setup"
 
 ["dev:up"]
-description = "Start devcontainer with traefik routing labels for current worktree"
-run = """
-[ -n "${TMUX:-}" ] && tmux set-option -p @role claude 2>/dev/null || true
-[ -n "${TMUX:-}" ] && tmux set-option -p @project-path "$(git rev-parse --show-toplevel)" 2>/dev/null || true
-[ -n "${TMUX:-}" ] && tmux set-option -p @pane-name "$(basename "$(git rev-parse --show-toplevel)"):$(git branch --show-current)" 2>/dev/null || true
-.devcontainer/traefik.sh up
-[ -n "${TMUX:-}" ] && tmux set-option -p @role "" 2>/dev/null || true
-[ -n "${TMUX:-}" ] && tmux set-option -p @pane-name "" 2>/dev/null || true
-"""
+description = "Start devcontainer with Traefik routing labels for current worktree"
+run = "graft denv up"
 
 ["dev:down"]
 description = "Stop and remove devcontainer for current worktree"
-run = ".devcontainer/traefik.sh down"
+run = "graft denv down"
 
 ["dev:exec"]
 description = "Exec into running devcontainer for current worktree"
-run = """
-[ -n "${TMUX:-}" ] && tmux set-option -p @role claude 2>/dev/null || true
-[ -n "${TMUX:-}" ] && tmux set-option -p @project-path "$(git rev-parse --show-toplevel)" 2>/dev/null || true
-[ -n "${TMUX:-}" ] && tmux set-option -p @pane-name "$(basename "$(git rev-parse --show-toplevel)"):$(git branch --show-current)" 2>/dev/null || true
-.devcontainer/traefik.sh exec
-[ -n "${TMUX:-}" ] && tmux set-option -p @role "" 2>/dev/null || true
-[ -n "${TMUX:-}" ] && tmux set-option -p @pane-name "" 2>/dev/null || true
-"""
+run = "graft denv exec"
 
 ["dev:status"]
-description = "List running devcontainers with their traefik FQDNs"
-run = ".devcontainer/traefik.sh status"
+description = "List running devcontainers with their Traefik FQDNs"
+run = "graft denv status"
