@@ -22,7 +22,7 @@ ARG CURL_OPTS="-sfSL --retry 3 --retry-delay 2 --retry-connrefused"
 #- -------------------------------------------------------------------------------------------------
 #- Builder Base
 #-
-FROM --platform=$BUILDPLATFORM rust:1.94.1-trixie@sha256:652612f07bfbbdfa3af34761c1e435094c00dde4a98036132fca28c7bb2b165c AS builder-base
+FROM --platform=$BUILDPLATFORM rust:1.95.0-trixie@sha256:a9cfb755b33f5bb872610cbdb25da61f527416b28fc9c052bbce4bef93e7799a AS builder-base
 ARG CURL_OPTS \
 	DEBIAN_FRONTEND \
 	MOLD_VERSION \
