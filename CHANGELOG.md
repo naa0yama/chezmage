@@ -1,5 +1,26 @@
 # Changelog
 
+## [v0.3.6](https://github.com/naa0yama/chezmage/compare/v0.3.5...v0.3.6) - 2026-05-06
+### Development Environment 🔧
+- chore(deps): update dependency jdx/mise to v2026.4.19 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/234
+- chore(deps): update mozilla-actions/sccache-action action to v0.0.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/235
+- chore(deps): update taiki-e/install-action action to v2.75.20 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/237
+- chore(deps): update taiki-e/install-action action to v2.75.21 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/239
+- chore(deps): update dependency jdx/mise to v2026.4.20 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/238
+- chore(deps): update k1low/octocov-action action to v1.5.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/240
+- chore(deps): update taiki-e/install-action action to v2.75.22 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/241
+- chore(deps): update dependency jdx/mise to v2026.4.22 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/243
+- chore(deps): update dependency jdx/mise to v2026.4.23 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/245
+- chore(deps): update taiki-e/install-action action to v2.75.23 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/247
+- chore(deps): update dependency jdx/mise to v2026.4.24 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/246
+- chore(deps): update dependency jdx/mise to v2026.4.25 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/250
+- chore(deps): update taiki-e/install-action action to v2.75.24 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/251
+- chore(deps): update dependency openobserve/openobserve to v0.80.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/253
+- chore(deps): update taiki-e/install-action action to v2.75.25 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/254
+### Other Changes
+- chore: migrate from gh-sync to graft and improve devcontainer setup by @naa0yama in https://github.com/naa0yama/chezmage/pull/252
+- chore: update graft to v0.5.4 and remove trailing newlines by @naa0yama in https://github.com/naa0yama/chezmage/pull/255
+
 ## [v0.3.5](https://github.com/naa0yama/chezmage/compare/v0.3.4...v0.3.5) - 2026-04-29
 
 ### Features 🎉
