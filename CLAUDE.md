@@ -42,8 +42,6 @@ All tasks use `mise run <task>`:
 | O2 (install)          | `mise run o2:install`               |
 | O2 (start)            | `mise run o2`                       |
 | O2 (stop)             | `mise run o2:stop`                  |
-| CodeQL (install)      | `mise run codeql:install`           |
-| CodeQL (analyze)      | `mise run codeql`                   |
 | Traefik (setup)       | `mise run traefik:setup`            |
 | Dev (up)              | `mise run dev:up`                   |
 | Dev (down)            | `mise run dev:down`                 |
@@ -62,7 +60,7 @@ Allowed types: feat, update, fix, style, refactor, docs, perf, test, build, ci, 
 2. Implement
 3. Run `mise run test` — all tests must pass
 4. Stage only the relevant files
-5. Run `mise run pre-commit` (runs clean:sweep, fmt:check, clippy:strict, ast-grep, lint:gh)
+5. Run `mise run pre-commit` (runs clean:sweep, fmt:check, clippy:strict, ast-grep, lint:gh, check:no-plans)
 6. If errors, fix → re-stage → re-run `mise run pre-commit`
 
 ## Code Comments
