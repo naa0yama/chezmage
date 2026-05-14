@@ -1,7 +1,7 @@
 [env]
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
-OPENOBSERVE_VERSION = "v0.80.2"
+OPENOBSERVE_VERSION = "v0.80.3"
 
 # graft:keep-start
 # Project-specific dependencies are listed here.
