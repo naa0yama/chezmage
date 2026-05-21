@@ -173,8 +173,7 @@ mod process_metrics {
             #[allow(clippy::as_conversions)] // u32 → usize is a safe widening cast
             let pid = Pid::from(std::process::id() as usize);
             let cpu_count = std::thread::available_parallelism()
-                .map(|n| u32::try_from(n.get()).unwrap_or(1))
-                .unwrap_or(1);
+                .map_or(1, |n| u32::try_from(n.get()).unwrap_or(1));
             let system = Arc::new(Mutex::new(System::new_with_specifics(
                 RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()),
             )));

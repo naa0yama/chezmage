@@ -166,6 +166,7 @@ cargo-common-metadata = "allow"
 warnings = "warn"
 missing_debug_implementations = "warn" #			Warning about unimplemented Debug trait
 missing_docs = "warn" #								Warning about insufficient documentation for pub items.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 # - -------------------------------------------------------------------------------------------------
 # - Profiles
