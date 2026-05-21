@@ -97,7 +97,7 @@ jobs:
     uses: ./.github/workflows/rust-ci.yaml
     permissions:
       contents: write # octocov badge push
-      actions: read # octocov artifact
+      actions: write # octocov artifact cleanup requires write
       pull-requests: write # octocov comment
 
   miri:

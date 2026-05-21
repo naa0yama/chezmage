@@ -1,0 +1,6 @@
+# gitleaks:ignore entries for false positives
+# Format: <commit>:<file>:<rule-id>:<line>
+#
+# a0b7d3e6 chore: ast-rules — documentation bad-example in _rules.md
+# The key "sk-1234..." is a fake placeholder illustrating the no-hardcoded-credentials rule.
+a0b7d3e6fbf03977055f6c660e3a62a279d076b1:ast-rules/_rules.md:generic-api-key:463

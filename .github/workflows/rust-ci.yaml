@@ -214,7 +214,7 @@ jobs:
     needs: [setup, fmt]
     timeout-minutes: ${{ fromJSON(needs.setup.outputs.timeout_minutes) }}
     permissions:
-      actions: read #         For octocov to retrieve previous reports from artifacts
+      actions: write #        For octocov to store/delete previous reports from artifacts
       contents: write #       For pushing coverage badges to the badges branch
       pull-requests: write #  For octocov to comment on pull requests
 
