@@ -67,8 +67,8 @@ pub fn run() -> Result<()> {
     // Already decrypted -> skip GPG (recursion guard)
     if env::var(ENV_AGE_KEY)
         .ok()
-        .filter(|k| !k.is_empty())
-        .is_some()
+        .as_ref()
+        .is_some_and(|k| !k.is_empty())
     {
         exec_chezmoi(&args)?;
     }

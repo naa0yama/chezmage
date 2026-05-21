@@ -87,7 +87,76 @@ if [ -d .githooks ]; then chmod +x .githooks/*; fi
 
 ["ast-grep"]
 description = "Run ast-grep custom rules check"
-run = "sg scan --error --color never"
+depends = ["ast-grep:text"]
+run = """
+#!/usr/bin/env bash
+set -uo pipefail
+_rc=0
+# All rules on all files (non-testdata rules)
+sg scan --error --color never \
+  --off=no-real-ipv4 --off=no-real-ipv6 --off=no-real-asn --off=no-real-fqdn \
+  || _rc=1
+# Testdata-policy rules on all files
+# --off=unused-suppression: the partial rule set makes unrelated ast-grep-ignore comments appear unused
+sg scan --error --color never \
+  --filter 'no-real-(ipv4|ipv6|asn|fqdn)' \
+  --off=unused-suppression \
+  || _rc=1
+exit "$_rc"
+"""
+
+["ast-grep:text"]
+description = "grep-P testdata-policy check for md/json/jsonl (RFC-reserved values only)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+# ast-grep generic language is not supported in 0.42.x; use grep -P (ugrep PCRE2) instead.
+# Output format: [rule-id] description\\n  file:line:content  (one per violation)
+_text_check() {
+  local id="$1" msg="$2" pat="$3" excl="${4:-}"
+  local raw="" out=""
+  raw=$(grep -rn -P "$pat" \
+    --include='*.md' --include='*.json' --include='*.jsonl' \
+    --exclude-dir=target --exclude-dir='.claude' \
+    --exclude-dir=data --exclude-dir=tmp \
+    . 2>/dev/null || true)
+  if [ -n "$excl" ] && [ -n "$raw" ]; then
+    out=$(printf '%s\\n' "$raw" | grep -vP "$excl" || true)
+  else
+    out="$raw"
+  fi
+  if [ -n "$out" ]; then
+    out=$(printf '%s\\n' "$out" | grep -v 'testdata-ok' || true)
+  fi
+  if [ -n "$out" ]; then
+    printf '\\n[%s] %s\\n%s\\n' "$id" "$msg" "$out" >&2
+    return 1
+  fi
+}
+
+_failed=0
+_text_check 'no-real-ipv4-text' \
+  'real IPv4 — use RFC-reserved range (198.51.100.x / 192.0.2.x / 10.x)' \
+  '\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(?:/\\d{1,2})?\\b' \
+  '\\b(?:10\\.|127\\.|169\\.254\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.|192\\.168\\.|192\\.0\\.2\\.|198\\.51\\.100\\.|203\\.0\\.113\\.|0\\.0\\.0\\.0|100\\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\\.|22[4-9]\\.|2[3-5][0-9]\\.)' \
+  || _failed=1
+_text_check 'no-real-ipv6-text' \
+  'real IPv6 — use 2001:db8:: documentation prefix' \
+  '(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{0,4}' \
+  '(?:2001:[Dd][Bb]8:|::1\\b|[Ff][Ee]80::|T[0-2][0-9]:[0-5][0-9]:[0-5][0-9])' \
+  || _failed=1
+_text_check 'no-real-asn-text' \
+  'real ASN — use RFC 5398 documentation range AS64496-AS64511' \
+  '\\b[Aa][Ss]\\d+\\b' \
+  '\\b[Aa][Ss](?:6449[6-9]|6450[0-9]|6451[01])\\b' \
+  || _failed=1
+_text_check 'no-real-fqdn-text' \
+  'FQDN uses non-RFC-reserved domain — use example.com / example.net / example.org / .invalid' \
+  '\\b(?:xe|ge|et|lo)-\\d+-\\d+-\\d+\\.' \
+  '\\.(?:example\\.(?:com|net|org)|invalid)\\b' \
+  || _failed=1
+exit "$_failed"
+"""
 
 [audit]
 description = "Audit dependencies"
@@ -152,12 +221,12 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-rustup component add llvm-tools-preview --toolchain nightly-2026-01-15
+rustup component add llvm-tools-preview --toolchain nightly-2026-03-15
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--cargo-quiet --cargo-quiet --status-level fail"
 _cpus=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 _threads=$(( _cpus * 7 / 10 < 1 ? 1 : _cpus * 7 / 10 ))
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then _threads="$_cpus"; fi
-cargo +nightly-2026-01-15 llvm-cov nextest --all-features --fail-under-lines 90 --lcov --output-path target/lcov.info --test-threads "$_threads" $quiet
+cargo +nightly-2026-03-15 llvm-cov nextest --all-features --fail-under-lines 90 --lcov --output-path target/lcov.info --test-threads "$_threads" $quiet
 """
 
 ["coverage:html"]
@@ -166,11 +235,11 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-rustup component add llvm-tools-preview --toolchain nightly-2026-01-15
+rustup component add llvm-tools-preview --toolchain nightly-2026-03-15
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--cargo-quiet --cargo-quiet --status-level fail"
 _cpus=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 _threads=$(( _cpus * 7 / 10 < 1 ? 1 : _cpus * 7 / 10 ))
-cargo +nightly-2026-01-15 llvm-cov nextest --all-features --html --open --test-threads "$_threads" $quiet
+cargo +nightly-2026-03-15 llvm-cov nextest --all-features --html --open --test-threads "$_threads" $quiet
 """
 
 [deny]

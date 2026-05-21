@@ -1,0 +1,9 @@
+# gitleaks:ignore entries for false positives
+# Format: <commit>:<file>:<rule-id>:<line>
+
+# 585858911c Initial commit — fake API key illustrating no-hardcoded-credentials rule
+585858911c940a327ca7a4bb4da26ae00d702d39:ast-rules/_rules.md:generic-api-key:181
+
+# 80a46f07 feat: 1st commit — Age secret key test fixtures (fake keys for unit tests)
+80a46f0700fa20f83c772b0902d20655e2fff807:tests/integration_test.rs:generic-api-key:148
+80a46f0700fa20f83c772b0902d20655e2fff807:tests/integration_test.rs:generic-api-key:169
