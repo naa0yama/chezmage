@@ -1,0 +1,16 @@
+id: no-real-asn
+language: rust
+severity: warning
+message: "Real ASN — use RFC 5398 documentation range (AS64496-AS64511) instead"
+note: |
+  Approved range:
+    AS64496-AS64511  RFC 5398 documentation  e.g. AS64496, AS64500, AS64511
+rule:
+  all:
+    - any:
+        - kind: string_literal
+        - kind: line_comment
+        - kind: block_comment
+    - regex: '\b[Aa][Ss]\d+\b'
+    - not:
+        regex: '\b[Aa][Ss](6449[6-9]|6450[0-9]|6451[01])\b'

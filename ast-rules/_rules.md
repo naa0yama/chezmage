@@ -178,7 +178,7 @@ async fn load_config() -> Result<Config, Error> {
 fn connect_to_database() -> Connection {
     // ハードコードされた認証情報 - セキュリティリスク
     let password = "super_secret_password_123"; // gitleaks:allow
-    let api_key = "sk-1234567890abcdef1234567890abcdef"; // gitleaks:allow
+    let api_key = "sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // gitleaks:allow
 
     Database::connect("localhost", "admin", password)
 }
@@ -268,6 +268,111 @@ impl User {
     pub fn name(&self) -> &str { &self.name } // Rustの慣例
 }
 ```
+
+---
+
+## テストデータポリシー
+
+ソースコード・テストフィクスチャ・ドキュメントに実運用ネットワークデータを埋め込むことを禁止する。
+文字列リテラル・行コメント・ブロックコメント内で検査される。
+
+テキストファイル (`.md` / `.json` / `.jsonl`) は `ast-grep:text` タスクが別途 grep で検査する。
+
+### no-real-ipv4
+
+**目的**: 実 IPv4 アドレスの使用禁止
+
+#### ダメな例
+
+```rust
+// 実運用 IP — テストデータポリシー違反
+let peer = "203.104.0.1"; // testdata-ok: rule documentation bad example
+let prefix = "8.8.8.0/24"; // testdata-ok: rule documentation bad example
+```
+
+#### 良い例
+
+```rust
+let peer = "198.51.100.1";    // RFC 5737 TEST-NET-2 (preferred)
+let peer = "192.0.2.1";       // RFC 5737 TEST-NET-1
+let peer = "203.0.113.1";     // RFC 5737 TEST-NET-3
+let peer = "10.0.0.1";        // RFC 1918 private
+let prefix = "198.51.100.0/24";
+```
+
+承認済み範囲: `198.51.100.0/24`, `192.0.2.0/24`, `203.0.113.0/24`, `10.x`, `172.16-31.x`, `192.168.x`, `127.x`, `169.254.x`, `100.64-127.x`, `0.0.0.0`, `224.x+`
+
+---
+
+### no-real-ipv6
+
+**目的**: 実 IPv6 アドレスの使用禁止
+
+#### ダメな例
+
+```rust
+let peer = "2001:4860:4860::8888"; // Google DNS — 実アドレス  // testdata-ok: rule documentation bad example
+```
+
+#### 良い例
+
+```rust
+let peer = "2001:db8::1";  // RFC 3849 ドキュメント用プレフィックス
+let lo   = "::1";          // loopback
+let ll   = "fe80::1";      // link-local
+```
+
+承認済み範囲: `2001:db8::/32`, `::1`, `fe80::/10`, `::`
+
+---
+
+### no-real-asn
+
+**目的**: 実 ASN の使用禁止
+
+#### ダメな例
+
+```rust
+let asn = "AS7922";   // Comcast — 実 ASN  // testdata-ok: rule documentation bad example
+let asn = "AS15169";  // Google — 実 ASN   // testdata-ok: rule documentation bad example
+```
+
+#### 良い例
+
+```rust
+let asn = "AS64496";  // RFC 5398 ドキュメント用 (preferred)
+let asn = "AS64511";  // RFC 5398 ドキュメント用
+```
+
+承認済み範囲: `AS64496`–`AS64511` (RFC 5398)
+
+---
+
+### no-real-fqdn
+
+**目的**: 実ルーターホスト名・非 RFC 予約ドメインの使用禁止
+
+インタフェース形式 (`xe-`/`ge-`/`et-`/`lo-`) を持つ FQDN を検査する。
+
+#### ダメな例
+
+```rust
+// 実ルーターホスト名
+let ptr = "xe-0-0-1.medge0306.pop3.example.net";
+// 非 RFC 予約ドメイン
+let ptr = "xe-0-0-1.rtr01.dc01.isp.net"; // testdata-ok: rule documentation bad example
+```
+
+#### 良い例
+
+```rust
+// 承認済みデバイス名 + RFC 予約ドメイン
+let ptr = "xe-0-0-1.rtr01.dc01.example.net";
+let ptr = "ge-0-0-0.edge02.pop2.example.org";
+```
+
+承認済みデバイス名: `rtr01`–`rtr03`, `edge01`–`edge03`, `core01`–`core02`
+承認済みドメイン: `example.com`, `example.net`, `example.org`, `.invalid`
 
 ---
 

@@ -27,6 +27,7 @@ All tasks use `mise run <task>`:
 | Lint                  | `mise run lint`                     |
 | Lint (GitHub Actions) | `mise run lint:gh`                  |
 | AST rules             | `mise run ast-grep`                 |
+| AST rules (text)      | `mise run ast-grep:text`            |
 | Pre-commit (required) | `mise run pre-commit`               |
 | Pre-push              | `mise run pre-push`                 |
 | Coverage              | `mise run coverage`                 |
