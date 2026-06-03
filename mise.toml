@@ -12,7 +12,7 @@ RUST_LOG = "warn,chezmage=trace"
 [tools]
 "aqua:ast-grep/ast-grep" = "0.42.3"
 "aqua:cli/cli" = "2.91.0"
-"aqua:EmbarkStudios/cargo-deny" = "0.19.6"
+"aqua:EmbarkStudios/cargo-deny" = "0.19.7"
 "aqua:taiki-e/cargo-llvm-cov" = "0.8.7"
 "cargo:cargo-nextest" = "0.9.101"
 "aqua:watchexec/cargo-watch" = "8.5.3"
