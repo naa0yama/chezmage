@@ -32,13 +32,26 @@ echo "Badges branch initialized. Run: git push origin badges"
 """
 
 ["check:no-plans"]
-description = "Reject .claude/artifacts/*.md files"
+description = "Reject unabsorbed .claude/artifacts/*.md files"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-if find .claude/artifacts -name '*.md' -print -quit 2>/dev/null | grep -q .; then
-  echo 'Error: .claude/artifacts/ contains unabsorbed .md files.' >&2
-  echo 'Absorb design decisions into docs/specs/, then delete the files.' >&2
+
+rejected=""
+while IFS= read -r f; do
+  dir=$(dirname "$f")
+  plan="$dir/PLAN.md"
+  # task dir with an active PLAN.md → in progress, skip entire dir
+  if [[ -f "$plan" ]] && head -5 "$plan" | grep -q 'status: active'; then
+    continue
+  fi
+  rejected="${rejected}  ${f}"$'\n'
+done < <(find .claude/artifacts -name '*.md' 2>/dev/null)
+
+if [ -n "$rejected" ]; then
+  echo 'Error: .claude/artifacts/ contains unabsorbed .md files:' >&2
+  printf '%s' "$rejected" >&2
+  echo 'Absorb design decisions into docs/specs/, then delete.' >&2
   exit 1
 fi
 """
@@ -56,6 +69,7 @@ description = "Install Claude Code to ~/.local/bin via official installer"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 if command -v claude > /dev/null 2>&1; then
   echo "Claude Code already installed: $(claude --version)"
   exit 0
@@ -78,6 +92,9 @@ depends = ["lint", "test", "coverage", "build:release", "lint:gh"]
 [setup]
 description = "Initial project setup"
 run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
 if [ -d .githooks ]; then chmod +x .githooks/*; fi
 """
 
@@ -90,19 +107,16 @@ description = "Run ast-grep custom rules check"
 depends = ["ast-grep:text"]
 run = """
 #!/usr/bin/env bash
-set -uo pipefail
-_rc=0
+set -euo pipefail
+
 # All rules on all files (non-testdata rules)
 sg scan --error --color never \
-  --off=no-real-ipv4 --off=no-real-ipv6 --off=no-real-asn --off=no-real-fqdn \
-  || _rc=1
+  --off=no-real-ipv4 --off=no-real-ipv6 --off=no-real-asn --off=no-real-fqdn
 # Testdata-policy rules on all files
 # --off=unused-suppression: the partial rule set makes unrelated ast-grep-ignore comments appear unused
 sg scan --error --color never \
   --filter 'no-real-(ipv4|ipv6|asn|fqdn)' \
-  --off=unused-suppression \
-  || _rc=1
-exit "$_rc"
+  --off=unused-suppression
 """
 
 ["ast-grep:text"]
@@ -110,6 +124,7 @@ description = "grep-P testdata-policy check for md/json/jsonl (RFC-reserved valu
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 # ast-grep generic language is not supported in 0.42.x; use grep -P (ugrep PCRE2) instead.
 # Output format: [rule-id] description\\n  file:line:content  (one per violation)
 _text_check() {
@@ -138,7 +153,7 @@ _failed=0
 _text_check 'no-real-ipv4-text' \
   'real IPv4 — use RFC-reserved range (198.51.100.x / 192.0.2.x / 10.x)' \
   '\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(?:/\\d{1,2})?\\b' \
-  '\\b(?:10\\.|127\\.|169\\.254\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.|192\\.168\\.|192\\.0\\.2\\.|198\\.51\\.100\\.|203\\.0\\.113\\.|0\\.0\\.0\\.0|100\\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\\.|22[4-9]\\.|2[3-5][0-9]\\.)' \
+  '\\b(?:10\\.|127\\.|169\\.254\\.|172\\.(?:1[6-9]|2\\d|3[01])\\.|192\\.168\\.|192\\.0\\.2\\.|198\\.51\\.100\\.|203\\.0\\.113\\.|0\\.0\\.0\\.0|100\\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\\.|22[4-9]\\.|2[3-5][0-9]\\.)' \
   || _failed=1
 _text_check 'no-real-ipv6-text' \
   'real IPv6 — use 2001:db8:: documentation prefix' \
@@ -167,6 +182,7 @@ description = "Debug build"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--quiet"
 cargo build $quiet
 """
@@ -176,6 +192,7 @@ description = "Release build (with auditable dependency info)"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--quiet"
 cargo auditable build --release $quiet
 """
@@ -189,6 +206,7 @@ description = "Compile check"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--quiet"
 cargo check --all-targets --all-features $quiet
 """
@@ -198,6 +216,7 @@ description = "Run clippy lints"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--quiet"
 cargo clippy --all-targets --all-features $quiet
 """
@@ -207,6 +226,7 @@ description = "Run clippy lints (warnings as errors)"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--quiet"
 cargo clippy --all-targets --all-features $quiet -- -D warnings
 """
@@ -221,12 +241,13 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 rustup component add llvm-tools-preview --toolchain nightly-2026-03-15
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--cargo-quiet --cargo-quiet --status-level fail"
 _cpus=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 _threads=$(( _cpus * 7 / 10 < 1 ? 1 : _cpus * 7 / 10 ))
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then _threads="$_cpus"; fi
-cargo +nightly-2026-03-15 llvm-cov nextest --all-features --fail-under-lines 90 --lcov --output-path target/lcov.info --test-threads "$_threads" $quiet
+cargo +nightly-2026-03-15 llvm-cov nextest --all-targets --all-features --fail-under-lines 90 --lcov --output-path target/lcov.info --test-threads "$_threads" $quiet
 """
 
 ["coverage:html"]
@@ -235,11 +256,12 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:19999" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 rustup component add llvm-tools-preview --toolchain nightly-2026-03-15
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--cargo-quiet --cargo-quiet --status-level fail"
 _cpus=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 _threads=$(( _cpus * 7 / 10 < 1 ? 1 : _cpus * 7 / 10 ))
-cargo +nightly-2026-03-15 llvm-cov nextest --all-features --html --open --test-threads "$_threads" $quiet
+cargo +nightly-2026-03-15 llvm-cov nextest --all-targets --all-features --html --open --test-threads "$_threads" $quiet
 """
 
 [deny]
@@ -251,6 +273,7 @@ description = "Run all formatters"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 cargo fmt
 dprint fmt
 """
@@ -260,6 +283,7 @@ description = "Check all formatting"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 cargo fmt -- --check
 dprint check
 """
@@ -273,6 +297,7 @@ description = "Lint GitHub Actions workflows"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 actionlint
 ghalint run
 ghalint run-action
@@ -281,7 +306,13 @@ zizmor --persona=pedantic .github/
 
 [miri]
 description = "Run Miri to detect undefined behavior"
-run = "cargo +nightly miri test"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+rustup component add miri --toolchain nightly-2026-03-15
+cargo +nightly-2026-03-15 miri test
+"""
 
 [test]
 description = "Run tests"
@@ -289,11 +320,12 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--cargo-quiet --cargo-quiet --status-level fail"
 _cpus=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 _threads=$(( _cpus * 7 / 10 < 1 ? 1 : _cpus * 7 / 10 ))
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then _threads="$_cpus"; fi
-cargo nextest run --all-targets --test-threads "$_threads" $quiet "$@"
+cargo nextest run --all-targets --all-features --test-threads "$_threads" $quiet "$@"
 """
 
 ["test:doc"]
@@ -302,6 +334,7 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--quiet"
 cargo test --doc $quiet
 """
@@ -311,6 +344,7 @@ description = "Run tests against a fresh OpenObserve instance (restarts O2 for c
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 mise run o2:stop
 mise run o2
 echo 'OpenObserve restarted with clean state'
@@ -318,13 +352,13 @@ quiet=""; [[ "${CLAUDECODE:-}" == "1" ]] && quiet="--cargo-quiet --cargo-quiet -
 _cpus=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 _threads=$(( _cpus * 7 / 10 < 1 ? 1 : _cpus * 7 / 10 ))
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then _threads="$_cpus"; fi
-cargo nextest run --all-targets --test-threads "$_threads" $quiet
+cargo nextest run --all-targets --all-features --test-threads "$_threads" $quiet
 """
 
 ["test:watch"]
 description = "TDD watch mode"
 env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
-run = "cargo watch -x 'nextest run --all-targets'"
+run = "cargo watch -x 'nextest run --all-targets --all-features'"
 
 # =============================================================================
 # Dev / Infra
@@ -352,6 +386,7 @@ env = { OTEL_EXPORTER_OTLP_ENDPOINT = "" }
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
 if ! command -v openobserve > /dev/null 2>&1; then
   echo 'Error: openobserve not found. Run "mise run o2:install" first.' >&2
   exit 1
@@ -422,6 +457,9 @@ echo "OpenObserve ${version} installed to ${target}"
 ["o2:stop"]
 description = "Stop OpenObserve"
 run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
 pkill -x openobserve 2>/dev/null && while pgrep -x openobserve > /dev/null; do sleep 0.1; done || true
 """
 
