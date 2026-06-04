@@ -1,13 +1,19 @@
 # Changelog
 
 ## [v0.3.7](https://github.com/naa0yama/chezmage/compare/v0.3.6...v0.3.7) - 2026-06-04
+
 ### Features 🎉
+
 - feat(ast-grep): add testdata-policy rules + Rust 1.95.0 toolchain update by @naa0yama in https://github.com/naa0yama/chezmage/pull/304
+
 ### Dependency Updates 📦
+
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/268
 - chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/293
 - chore(deps): update rust crate assert_cmd to v2.2.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/298
+
 ### Development Environment 🔧
+
 - chore(deps): update dependency jdx/mise to v2026.4.27 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/256
 - chore(deps): update taiki-e/install-action action to v2.75.26 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/257
 - chore(deps): update dependency mozilla/sccache to v0.15.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/258
@@ -67,7 +73,9 @@
 - chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/326
 - chore(deps): update mise to v2026.5.15 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/325
 - chore: sync upstream backport (rename, CI, deps, mise) by @naa0yama in https://github.com/naa0yama/chezmage/pull/329
+
 ### Other Changes
+
 - chore(graft): sync upstream files from naa0yama/boilerplate-rust by @naa0yama in https://github.com/naa0yama/chezmage/pull/265
 - chore(mise): sync tasks with boilerplate template by @naa0yama in https://github.com/naa0yama/chezmage/pull/277
 
