@@ -17,19 +17,19 @@
 	// Add another local file mount.
 	"mounts": [
 		// Claude Code
-		"type=bind,source=${localEnv:HOME}/.claude,target=/home/cuser/.claude",
-		"type=bind,source=${localEnv:HOME}/.claude.json,target=/home/cuser/.claude.json",
+		"type=bind,source=${localEnv:HOME}/.claude,target=/home/user/.claude",
+		"type=bind,source=${localEnv:HOME}/.claude.json,target=/home/user/.claude.json",
 		// Git
-		"type=bind,source=${localEnv:HOME}/.gitconfig,target=/home/cuser/.gitconfig",
-		"type=bind,source=${localEnv:HOME}/.gitconfig.d,target=/home/cuser/.gitconfig.d",
+		"type=bind,source=${localEnv:HOME}/.gitconfig,target=/home/user/.gitconfig",
+		"type=bind,source=${localEnv:HOME}/.gitconfig.d,target=/home/user/.gitconfig.d",
 		// GitHub
-		"type=bind,source=${localEnv:HOME}/.config/gh,target=/home/cuser/.config/gh",
+		"type=bind,source=${localEnv:HOME}/.config/gh,target=/home/user/.config/gh",
 		// Cross-project shared: ~/.local/bin (mise/openobserve binary, claude symlink)
-		"type=volume,source=devcontainer-shared-local-bin,target=/home/cuser/.local/bin",
+		"type=volume,source=devcontainer-shared-local-bin,target=/home/user/.local/bin",
 		// Cross-project shared: mise managed tool installs
-		"type=volume,source=devcontainer-shared-mise,target=/home/cuser/.local/share/mise",
+		"type=volume,source=devcontainer-shared-mise,target=/home/user/.local/share/mise",
 		// Cross-project shared: claude binary versions (symlink target of ~/.local/bin/claude)
-		"type=volume,source=devcontainer-shared-claude,target=/home/cuser/.local/share/claude"
+		"type=volume,source=devcontainer-shared-claude,target=/home/user/.local/share/claude"
 	],
 	"customizations": {
 		"vscode": {
@@ -49,7 +49,7 @@
 			],
 			"settings": {
 				"window.title": "${localWorkspaceFolderBasename}${separator}${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}",
-				"dprint.path": "/home/cuser/.local/share/mise/shims/dprint",
+				"dprint.path": "/home/user/.local/share/mise/shims/dprint",
 				"remote.autoForwardPorts": true,
 				"remote.autoForwardPortsSource": "process"
 			}
@@ -68,7 +68,7 @@
 		"MISE_GITHUB_TOKEN": "${localEnv:MISE_GITHUB_TOKEN}"
 	},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	"remoteUser": "cuser",
+	"remoteUser": "user",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=delegated",
 	"workspaceFolder": "/app"
 }

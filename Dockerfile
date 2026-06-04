@@ -4,7 +4,7 @@
 #-
 ARG DEBIAN_FRONTEND=noninteractive \
 	TZ=${TZ:-Asia/Tokyo} \
-	USER_NAME=cuser \
+	USER_NAME=user \
 	USER_UID=${USER_UID:-60001} \
 	USER_GID=${USER_GID:-${USER_UID}}
 
@@ -202,7 +202,7 @@ case ":$PATH:" in
 esac
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export GPG_TTY="$(tty 2>/dev/null || true)"
-alias cc="claude --dangerously-skip-permissions"
+alias cc="claude"
 
 _DOC_
 EOF
