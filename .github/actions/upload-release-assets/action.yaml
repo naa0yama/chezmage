@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://www.schemastore.org/github-action.json
 name: "Upload Release Assets"
-description: "Download build artifacts and upload them to an existing GitHub release created by tagpr"
+description: "Download build artifacts and upload them to an existing GitHub release draft"
 inputs:
   tag:
     description: "Release tag"
@@ -131,7 +131,7 @@ runs:
         set -euo pipefail
         shopt -s failglob
 
-        # Verify the release exists (tagpr creates it as draft before this workflow runs)
+        # Verify the release exists (release-manager creates it as draft before this workflow runs)
         release_url="$(gh release view "${TAG}" --json url --jq '.url')"
         echo "Release found: ${release_url}"
 

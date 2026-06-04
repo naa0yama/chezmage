@@ -1,0 +1,384 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: release-manager
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [labeled, unlabeled]
+    branches:
+      - main
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # zizmor: ignore[concurrency-limits] tag creation must not be cancelled mid-flight
+
+jobs:
+  detect:
+    name: detect
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      is_release_merge: ${{ steps.detect.outputs.is_release_merge }}
+      skip: ${{ steps.detect.outputs.skip }}
+      release_tag: ${{ steps.detect.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Detect release merge
+        id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COMMIT_MSG=$(git log -1 --format='%s')
+          CARGO_VER=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          COMMIT_VER=$(echo "${COMMIT_MSG}" | sed -n 's/^Release for v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')
+
+          if [ -n "${COMMIT_VER}" ] && [ "${COMMIT_VER}" = "${CARGO_VER}" ]; then
+            if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/v${CARGO_VER}" --silent 2>/dev/null; then
+              {
+                echo "is_release_merge=false"
+                echo "skip=true"
+                echo "release_tag="
+              } >> "$GITHUB_OUTPUT"
+            else
+              {
+                echo "is_release_merge=true"
+                echo "skip=false"
+                echo "release_tag=v${CARGO_VER}"
+              } >> "$GITHUB_OUTPUT"
+            fi
+          else
+            {
+              echo "is_release_merge=false"
+              echo "skip=false"
+              echo "release_tag="
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+  prepare-pr:
+    name: prepare-pr
+    needs: [detect]
+    if: >-
+      (needs.detect.result == 'success' || needs.detect.result == 'skipped') &&
+      ((github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'release/next') ||
+      (github.event_name != 'pull_request' && needs.detect.outputs.is_release_merge == 'false' && needs.detect.outputs.skip != 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: release-manager-prepare-pr
+      cancel-in-progress: false
+    permissions:
+      contents: write # Required to push release/next branch via REST API
+      pull-requests: write # Required to create and update release PR
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Cache dprint plugins
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/dprint
+          key: dprint-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('dprint.jsonc') }}
+          restore-keys: |
+            dprint-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        with:
+          install_args: dprint rust
+          # renovate: datasource=github-releases packageName=jdx/mise versioning=calver:YYYY.M.D automerge=true
+          version: 2026.5.15
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Calculate version and update files
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels) }}
+        run: |
+          set -euo pipefail
+
+          CURRENT=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+
+          # Guard: workspace-inherited versions only (crates must use version.workspace = true)
+          violators=$(find crates -name Cargo.toml -exec grep -l '^version = "' {} \; 2>/dev/null || true)
+          if [ -n "${violators}" ]; then
+            echo "::error::release-manager only supports workspace-inherited versions."
+            echo "The following crates declare their own version:"
+            echo "${violators}"
+            echo "Convert them to 'version.workspace = true' to use release-manager."
+            exit 1
+          fi
+
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BUMP=$(echo "${PR_LABELS_JSON}" \
+                   | jq -r '[.[].name | select(startswith("tagpr:"))] | first // "patch"' \
+                   | sed 's/tagpr://')
+          else
+            BUMP=$(gh pr list --head release/next --state open \
+                   --json labels --jq \
+                   '[(.[0].labels // [])[].name | select(startswith("tagpr:"))] | first // "patch"' \
+                   | sed 's/tagpr://')
+          fi
+
+          IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
+          case "$BUMP" in
+            major) NEXT="$((MAJ+1)).0.0" ;;
+            minor) NEXT="${MAJ}.$((MIN+1)).0" ;;
+            *)     NEXT="${MAJ}.${MIN}.$((PAT+1))" ;;
+          esac
+
+          echo "NEXT=${NEXT}" >> "$GITHUB_ENV"
+
+          sed -i "s/^version = \"${CURRENT}\"/version = \"${NEXT}\"/" Cargo.toml
+          cargo update --workspace
+
+          # Use REST API to avoid git history depth issues
+          PREV_TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" \
+                     --jq '.tag_name' 2>/dev/null || echo "")
+
+          CHANGELOG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f "tag_name=v${NEXT}" \
+            -f "previous_tag_name=${PREV_TAG}" \
+            --jq '.body')
+
+          # Write to file for safe multiline handoff to the next step
+          printf '%s' "${CHANGELOG}" > /tmp/release-changelog.md
+
+          {
+            printf '%s\n\n' "${CHANGELOG}"
+            cat CHANGELOG.md
+          } > CHANGELOG.md.tmp
+          mv CHANGELOG.md.tmp CHANGELOG.md
+          dprint fmt CHANGELOG.md
+
+      - name: Commit via REST API blob tree commit
+        id: commit
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          NEXT_VERSION: ${{ env.NEXT }}
+        with:
+          script: |
+            // Use github.request() instead of github.rest.git.* for refs with slashes
+            // (e.g., heads/release/next) to prevent Octokit from URL-encoding them.
+            const fs = require('fs');
+
+            // 1. Upload each modified file as an independent blob (100 MB limit each)
+            const filePaths = ['Cargo.toml', 'Cargo.lock', 'CHANGELOG.md'];
+            const blobs = await Promise.all(filePaths.map(async (filePath) => {
+              const { data } = await github.rest.git.createBlob({
+                ...context.repo,
+                content: fs.readFileSync(filePath).toString('base64'),
+                encoding: 'base64',
+              });
+              return { path: filePath, sha: data.sha };
+            }));
+
+            // 2. Resolve main HEAD and its tree
+            const { data: mainRef } = await github.request('GET /repos/{owner}/{repo}/git/ref/heads/main', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const mainSha = mainRef.object.sha;
+            const { data: mainCommit } = await github.rest.git.getCommit({
+              ...context.repo,
+              commit_sha: mainSha,
+            });
+
+            // 3. Create tree overlaying modified blobs on main tree
+            const { data: tree } = await github.rest.git.createTree({
+              ...context.repo,
+              base_tree: mainCommit.tree.sha,
+              tree: blobs.map(({ path, sha }) => ({
+                path, mode: '100644', type: 'blob', sha,
+              })),
+            });
+
+            // 4. Create server-side commit (appears as Verified)
+            const { data: commit } = await github.rest.git.createCommit({
+              ...context.repo,
+              message: `[release-manager] prepare release v${process.env.NEXT_VERSION}`,
+              tree: tree.sha,
+              parents: [mainSha],
+            });
+
+            // 5. Force-update or create release/next ref
+            try {
+              await github.request('PATCH /repos/{owner}/{repo}/git/refs/heads/release/next', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: commit.sha,
+                force: true,
+              });
+            } catch (e) {
+              if (e.status !== 422 && e.status !== 404) throw e;
+              await github.rest.git.createRef({
+                ...context.repo,
+                ref: 'refs/heads/release/next',
+                sha: commit.sha,
+              });
+            }
+
+            core.setOutput('commit_sha', commit.sha);
+
+      - name: Create or update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Ensure labels exist; --force is idempotent (updates color only if already present)
+          gh label create tagpr       --color ededed --force >/dev/null 2>&1 || true
+          gh label create tagpr:minor --color ededed --force >/dev/null 2>&1 || true
+          gh label create tagpr:major --color ededed --force >/dev/null 2>&1 || true
+
+          # Render template: substitute placeholders via bash parameter expansion
+          changelog=$(cat /tmp/release-changelog.md)
+          tmpl=$(cat .github/release-manager-pr-template.md)
+          body="${tmpl//\{\{.NextVersion\}\}/v${NEXT}}"
+          body="${body//\{\{.Changelog\}\}/${changelog}}"
+
+          # Preserve user-editable section below the marker on PR re-runs
+          marker='<!-- release-manager:notes -->'
+          pr_info=$(gh pr list --head release/next --state open \
+                    --json number,body --jq '.[0] // empty')
+          existing=$(printf '%s' "${pr_info}" | jq -r '.body // empty')
+          PR_NUM=$(printf '%s' "${pr_info}" | jq -r '.number // empty')
+          if [[ "${existing}" == *"${marker}"* ]]; then
+            notes="${existing#*"${marker}"}"
+            body="${body%%"${marker}"*}${marker}${notes}"
+          fi
+
+          if [ -n "${PR_NUM}" ]; then
+            gh pr edit "${PR_NUM}" \
+              --title "Release for v${NEXT}" \
+              --body "${body}"
+          else
+            gh pr create \
+              --head release/next \
+              --base main \
+              --title "Release for v${NEXT}" \
+              --body "${body}" \
+              --label tagpr \
+            || {
+              PR_NUM=$(gh pr list --head release/next --state open --json number \
+                       --jq '.[0].number')
+              gh pr edit "${PR_NUM}" \
+                --title "Release for v${NEXT}" \
+                --body "${body}"
+            }
+          fi
+
+  create-tag:
+    name: create-tag
+    needs: [detect]
+    if: >-
+      needs.detect.result == 'success' &&
+      needs.detect.outputs.is_release_merge == 'true' &&
+      needs.detect.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    permissions:
+      contents: write # Required to create tags and delete release/next branch
+    steps:
+      - name: Create lightweight tag and clean up release branch
+        id: tag
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RELEASE_TAG: ${{ needs.detect.outputs.release_tag }}
+        with:
+          script: |
+            // Use github.request() instead of github.rest.git.* for refs with slashes
+            // (e.g., heads/release/next) to prevent Octokit from URL-encoding them.
+            const tag = process.env.RELEASE_TAG;
+
+            // Use the push event SHA as the tag target.
+            // release/next may already be auto-deleted when GitHub merges the PR,
+            // so reading it is unreliable. context.sha is the merge commit on main,
+            // which is exactly the commit that should carry the release tag.
+            const commitSha = context.sha;
+
+            let tagExists = false;
+            try {
+              await github.request(`GET /repos/{owner}/{repo}/git/ref/tags/${tag}`, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              tagExists = true;
+            } catch (e) {
+              if (e.status !== 404) throw e;
+            }
+
+            if (!tagExists) {
+              // Lightweight tag — ref points directly to the signed merge commit.
+              // Annotated tag objects cannot be GPG-signed with GITHUB_TOKEN.
+              await github.rest.git.createRef({
+                ...context.repo,
+                ref: `refs/tags/${tag}`,
+                sha: commitSha,
+              });
+            }
+
+            let shouldRunRelease = true;
+            try {
+              const { data: rel } = await github.rest.repos.getReleaseByTag(
+                { ...context.repo, tag });
+              if (!rel.draft) {
+                // Published & immutable — assets already complete, skip release job
+                core.warning(`Release ${tag} already published; skipping release job.`);
+                shouldRunRelease = false;
+              }
+              // draft → continue (allows assets to be re-uploaded with --clobber)
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              // Release missing — create draft so upload-release-assets can attach binaries
+              await github.rest.repos.createRelease({
+                ...context.repo,
+                tag_name: tag,
+                name: tag,
+                draft: true,
+                generate_release_notes: true,
+              });
+            }
+
+            // Delete release/next if it still exists (auto-delete may have beaten us).
+            // Tolerate 403 from branch immutability rulesets in addition to 404/422.
+            try {
+              await github.request('DELETE /repos/{owner}/{repo}/git/refs/heads/release/next', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+            } catch (e) {
+              if (![404, 422, 403].includes(e.status)) throw e;
+            }
+
+            core.setOutput('tag', shouldRunRelease ? tag : '');
+
+  release:
+    name: Build and Release
+    needs: [create-tag]
+    if: needs.create-tag.outputs.tag != ''
+    permissions:
+      contents: write # Required to create releases and tags
+      actions: write # Required to upload build artifacts
+      id-token: write # Required for build provenance attestation
+      attestations: write # Required for build provenance attestation
+    uses: ./.github/workflows/release.yaml
+    with:
+      tag: ${{ needs.create-tag.outputs.tag }}
