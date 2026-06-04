@@ -1,7 +1,7 @@
 [env]
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:5080/api/default"
 ## renovate: datasource=github-releases packageName=openobserve/openobserve versioning=semver automerge=true
-OPENOBSERVE_VERSION = "v0.80.3"
+OPENOBSERVE_VERSION = "v0.90.3"
 
 # graft:keep-start
 # Project-specific dependencies are listed here.
@@ -10,7 +10,7 @@ RUST_LOG = "warn,chezmage=trace"
 # graft:keep-end
 
 [tools]
-"aqua:ast-grep/ast-grep" = "0.42.3"
+"aqua:ast-grep/ast-grep" = "0.43.0"
 "aqua:cli/cli" = "2.93.0"
 "aqua:EmbarkStudios/cargo-deny" = "0.19.8"
 "aqua:taiki-e/cargo-llvm-cov" = "0.8.7"
