@@ -13,3 +13,6 @@ Release for {{.NextVersion}}
 > | ------------- | ----- | ----------------- |
 > | `tagpr:minor` | minor | `0.1.4` → `0.2.0` |
 > | `tagpr:major` | major | `0.1.4` → `1.0.0` |
+
+<!-- release-manager:notes -->
+<!-- 以下に追記した内容は自動更新で上書きされません -->
