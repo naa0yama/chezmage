@@ -1,7 +1,4 @@
 {
-	"files.associations": {
-		".tagpr": "toml"
-	},
 	"[dockerfile]": {
 		"editor.defaultFormatter": "ms-azuretools.vscode-containers"
 	},
