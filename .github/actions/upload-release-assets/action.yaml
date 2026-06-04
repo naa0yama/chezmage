@@ -135,7 +135,13 @@ runs:
         release_url="$(gh release view "${TAG}" --json url --jq '.url')"
         echo "Release found: ${release_url}"
 
-        gh release upload "${TAG}" release-assets/* --clobber
+        if ! gh release upload "${TAG}" release-assets/* --clobber 2>upload.err; then
+          if grep -qE '(already_exists|immutable|422)' upload.err; then
+            echo "Assets already present and release immutable — accepting."
+          else
+            cat upload.err; exit 1
+          fi
+        fi
         echo "url=${release_url}" >> "$GITHUB_OUTPUT"
 
     - name: Publish release
@@ -145,7 +151,13 @@ runs:
         TAG: ${{ inputs.tag }}
       run: |
         set -euo pipefail
-        gh release edit "${TAG}" --draft=false --latest
+        if ! gh release edit "${TAG}" --draft=false --latest 2>edit.err; then
+          if grep -qiE '(not.*draft|already.*published|immutable)' edit.err; then
+            echo "Release already published — no-op."
+          else
+            cat edit.err; exit 1
+          fi
+        fi
         echo "Release ${TAG} published successfully"
 
     - name: Release summary
