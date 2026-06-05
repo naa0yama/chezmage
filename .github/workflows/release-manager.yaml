@@ -29,7 +29,7 @@ jobs:
       skip: ${{ steps.detect.outputs.skip }}
       release_tag: ${{ steps.detect.outputs.release_tag }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: main
           persist-credentials: false
@@ -81,7 +81,7 @@ jobs:
       contents: write # Required to push release/next branch via REST API
       pull-requests: write # Required to create and update release PR
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: main
           fetch-tags: true
@@ -126,15 +126,14 @@ jobs:
 
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             BUMP=$(echo "${PR_LABELS_JSON}" \
-                   | jq -r '[.[].name | select(startswith("tagpr:"))] | first // "patch"' \
-                   | sed 's/tagpr://')
+                   | jq -r '[.[].name | select(startswith("bump:"))] | first // "patch"' \
+                   | sed 's/bump://')
           else
             BUMP=$(gh pr list --head release/next --state open \
                    --json labels --jq \
-                   '[(.[0].labels // [])[].name | select(startswith("tagpr:"))] | first // "patch"' \
-                   | sed 's/tagpr://')
+                   '[(.[0].labels // [])[].name | select(startswith("bump:"))] | first // "patch"' \
+                   | sed 's/bump://')
           fi
-
           IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
           case "$BUMP" in
             major) NEXT="$((MAJ+1)).0.0" ;;
@@ -147,7 +146,7 @@ jobs:
           sed -i "s/^version = \"${CURRENT}\"/version = \"${NEXT}\"/" Cargo.toml
           cargo update --workspace
 
-          # Use REST API to avoid git history depth issues
+          # Use REST API to avoid git history depth issues (shallow clone has no tags)
           PREV_TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" \
                      --jq '.tag_name' 2>/dev/null || echo "")
 
@@ -156,7 +155,7 @@ jobs:
             -f "previous_tag_name=${PREV_TAG}" \
             --jq '.body')
 
-          # Write to file for safe multiline handoff to the next step
+          # Write changelog to file for safe multiline handoff
           printf '%s' "${CHANGELOG}" > /tmp/release-changelog.md
 
           {
@@ -242,9 +241,9 @@ jobs:
           set -euo pipefail
 
           # Ensure labels exist; --force is idempotent (updates color only if already present)
-          gh label create tagpr       --color ededed --force >/dev/null 2>&1 || true
-          gh label create tagpr:minor --color ededed --force >/dev/null 2>&1 || true
-          gh label create tagpr:major --color ededed --force >/dev/null 2>&1 || true
+          gh label create release-pr  --color 5319e7 --force >/dev/null 2>&1 || true
+          gh label create bump:minor  --color 5319e7 --force >/dev/null 2>&1 || true
+          gh label create bump:major  --color 5319e7 --force >/dev/null 2>&1 || true
 
           # Render template: substitute placeholders via bash parameter expansion
           changelog=$(cat /tmp/release-changelog.md)
@@ -273,7 +272,7 @@ jobs:
               --base main \
               --title "Release for v${NEXT}" \
               --body "${body}" \
-              --label tagpr \
+              --label release-pr \
             || {
               PR_NUM=$(gh pr list --head release/next --state open --json number \
                        --jq '.[0].number')
