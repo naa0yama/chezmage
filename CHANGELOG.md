@@ -2,6 +2,21 @@
 
 ## What's Changed
 
+### Development Environment 🔧
+
+- chore(deps): update dependency openobserve/openobserve to v0.90.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/328
+- chore(deps): update dependency aqua:ast-grep/ast-grep to v0.43.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/327
+- chore(deps): update dependency zizmor to v1.25.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/307
+- chore(deps): update docker/dockerfile docker tag to v1.24.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/302
+- chore(deps): update mise to v2026.5.16 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/334
+- chore: update action hashes, deps, and fix release labels by @naa0yama in https://github.com/naa0yama/chezmage/pull/335
+
+**Full Changelog**: https://github.com/naa0yama/chezmage/compare/v0.3.7...v0.3.8
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
 ### Features 🎉
 
 - feat(ast-grep): add testdata-policy rules + Rust 1.95.0 toolchain update by @naa0yama in https://github.com/naa0yama/chezmage/pull/304
