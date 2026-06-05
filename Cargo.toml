@@ -44,7 +44,7 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["env-filter", "fmt", "ansi", "std"] }
 
 ## System info (optional, behind `process-metrics` feature)
-sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 
 ## OpenTelemetry semantic conventions (optional, behind `process-metrics` feature)
 ## semconv_experimental: enables process.* metric name constants (currently experimental)
