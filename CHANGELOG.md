@@ -4,6 +4,16 @@
 
 ### Development Environment 🔧
 
+- chore: backport IPv4/IPv6 AST rule fixes and release-manager guard by @naa0yama in https://github.com/naa0yama/chezmage/pull/336
+
+**Full Changelog**: https://github.com/naa0yama/chezmage/compare/v0.3.8...v0.3.9
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Development Environment 🔧
+
 - chore(deps): update dependency openobserve/openobserve to v0.90.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/328
 - chore(deps): update dependency aqua:ast-grep/ast-grep to v0.43.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/327
 - chore(deps): update dependency zizmor to v1.25.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/307
