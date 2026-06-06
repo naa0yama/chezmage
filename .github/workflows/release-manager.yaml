@@ -150,9 +150,11 @@ jobs:
           PREV_TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" \
                      --jq '.tag_name' 2>/dev/null || echo "")
 
+          PREV_TAG_ARG=()
+          [ -n "${PREV_TAG}" ] && PREV_TAG_ARG=(-f "previous_tag_name=${PREV_TAG}")
           CHANGELOG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
             -f "tag_name=v${NEXT}" \
-            -f "previous_tag_name=${PREV_TAG}" \
+            "${PREV_TAG_ARG[@]}" \
             --jq '.body')
 
           # Write changelog to file for safe multiline handoff
