@@ -324,6 +324,12 @@ let ll   = "fe80::1";      // link-local
 
 承認済み範囲: `2001:db8::/32`, `::1`, `fe80::/10`, `::`
 
+False-positive exclusions (match the detection regex but are not IPv6):
+
+- Datetime `HH:MM:SS` / `Tnn:nn:nn` (ISO 8601, log timestamps)
+- MAC-like hex triplet `aa:bb:cc` (e.g. OUI prefixes)
+- ffmpeg `scale=W:H` filter (e.g. `scale=1920:1080`)
+
 ---
 
 ### no-real-asn
