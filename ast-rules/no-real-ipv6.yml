@@ -8,6 +8,10 @@ note: |
            ::1       loopback
         fe80::/10    link-local              e.g. fe80::1
             ::       unspecified
+  False-positive exclusions (not IPv6, but match the detection regex):
+    - datetime HH:MM:SS / Tnn:nn:nn (ISO 8601, log timestamps)
+    - MAC-like hex triplet aa:bb:cc (e.g. OUI prefixes)
+    - ffmpeg scale=W:H filter (e.g. scale=1920:1080)
 rule:
   all:
     - any:
@@ -16,4 +20,4 @@ rule:
         - kind: block_comment
     - regex: "(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{0,4}"
     - not:
-        regex: '(2001:[Dd][Bb]8:|::1\b|^::$|[Ff][Ee]80::|T\d{2}:\d{2}:\d{2})'
+        regex: '(2001:[Dd][Bb]8:|::1\b|^::$|[Ff][Ee]80::|T?[0-2]\d:[0-5]\d:[0-5]\d|\b[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\b|\bscale=\d{3,4}:\d{3,4}\b)'
