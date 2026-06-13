@@ -4,6 +4,24 @@
 
 ### Development Environment 🔧
 
+- chore: backport IPv4/IPv6 AST rule fixes and release-manager guard by @naa0yama in https://github.com/naa0yama/chezmage/pull/336
+- chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/339
+- chore(deps): update mise to v2026.5.18 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/341
+- chore(deps): update mise to v2026.6.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/342
+- chore(deps): update all action update to v4.1.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/343
+- chore(deps): update all action update to v2.81.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/344
+- chore(deps): update all action update to v2.81.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/345
+- chore(deps): update dependency github:naa0yama/graft to v0.5.8 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/346
+- chore(deps): update all action update to v2.81.7 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/347
+
+**Full Changelog**: https://github.com/naa0yama/chezmage/compare/v0.3.8...v0.3.9
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Development Environment 🔧
+
 - chore(deps): update dependency openobserve/openobserve to v0.90.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/328
 - chore(deps): update dependency aqua:ast-grep/ast-grep to v0.43.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/327
 - chore(deps): update dependency zizmor to v1.25.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/307
