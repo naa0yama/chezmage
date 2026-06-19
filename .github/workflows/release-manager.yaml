@@ -99,7 +99,7 @@ jobs:
         with:
           install_args: dprint rust
           # renovate: datasource=github-releases packageName=jdx/mise versioning=calver:YYYY.M.D automerge=true
-          version: 2026.6.3
+          version: 2026.6.4
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
