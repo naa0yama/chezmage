@@ -27,7 +27,7 @@ jobs:
       cross_check_matrix: ${{ steps.load.outputs.cross_check_matrix }}
       sccache: ${{ steps.versions.outputs.sccache }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -67,7 +67,7 @@ jobs:
       contents: read # Required to checkout the repository
 
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -80,7 +80,7 @@ jobs:
       - name: Cache system packages
         if: needs.setup.outputs.apt_packages != ''
         id: apt-cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/apt-cache
           key: apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/rust-ci.yaml') }}
@@ -108,7 +108,7 @@ jobs:
         run: sudo dpkg -i ~/apt-cache/*.deb
 
       - name: Cache mise tools
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/share/mise
           key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
@@ -116,7 +116,7 @@ jobs:
             mise-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Cache dprint plugins
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/dprint
           key: dprint-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('dprint.jsonc') }}
@@ -151,14 +151,14 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.setup.outputs.cross_check_matrix) }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Cache system packages
         if: matrix.os == 'ubuntu-latest' && matrix.apt_packages
         id: apt-cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/apt-cache
           key: apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-${{ hashFiles('.github/workflows/rust-ci.yaml') }}
@@ -219,7 +219,7 @@ jobs:
       pull-requests: write #  For octocov to comment on pull requests
 
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -232,7 +232,7 @@ jobs:
       - name: Cache system packages
         if: needs.setup.outputs.apt_packages != ''
         id: apt-cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/apt-cache
           key: apt-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/rust-ci.yaml') }}
@@ -260,7 +260,7 @@ jobs:
         run: sudo dpkg -i ~/apt-cache/*.deb
 
       - name: Cache mise tools
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/share/mise
           key: mise-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml') }}
