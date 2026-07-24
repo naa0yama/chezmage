@@ -2,6 +2,94 @@
 
 ## What's Changed
 
+### Dependency Updates 📦
+
+- chore(deps): update rust crate sysinfo to v0.39.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/374
+- chore(deps): update rust crate sysinfo to v0.39.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/394
+- chore(deps): update rust crate toml to v1.1.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/405
+- chore(deps): update rust crate clap to v4.6.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/410
+
+### Development Environment 🔧
+
+- chore: backport IPv4/IPv6 AST rule fixes and release-manager guard by @naa0yama in https://github.com/naa0yama/chezmage/pull/336
+- chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/339
+- chore(deps): update mise to v2026.5.18 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/341
+- chore(deps): update mise to v2026.6.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/342
+- chore(deps): update all action update to v4.1.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/343
+- chore(deps): update all action update to v2.81.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/344
+- chore(deps): update all action update to v2.81.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/345
+- chore(deps): update dependency github:naa0yama/graft to v0.5.8 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/346
+- chore(deps): update all action update to v2.81.7 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/347
+- chore(deps): update mise to v2026.6.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/348
+- chore(deps): update dependency github:naa0yama/graft to v0.5.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/349
+- chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/350
+- chore(deps): update all action update to v2.81.8 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/351
+- chore(deps): update all action update to v2.81.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/352
+- chore(deps): update mise to v2026.6.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/353
+- chore(deps): update all action update to v2.81.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/355
+- chore(deps): update mise to v2026.6.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/356
+- chore(deps): update mise to v2026.6.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/357
+- chore(deps): update mise to v2026.6.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/358
+- chore(deps): update mise to v2026.6.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/359
+- chore(deps): update mise to v2026.6.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/360
+- chore(deps): lock file maintenance by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/361
+- chore(deps): update mise to v2026.6.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/362
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/364
+- chore(deps): update dependency aqua:embarkstudios/cargo-deny to v0.19.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/365
+- chore(deps): update mise (patch) by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/366
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/367
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/369
+- chore(deps): update dependency aqua:cli/cli to v2.96.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/354
+- chore(deps): update docker/dockerfile docker tag to v1.25.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/370
+- chore(deps): update dependency usage to v3.5.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/338
+- chore(deps): update dependency jdx/mise to v2026.6.14 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/372
+- chore(deps): update dependency aqua:ast-grep/ast-grep to v0.44.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/376
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/375
+- chore(deps): update dependency dprint to v0.55.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/377
+- chore(deps): update dependency mozilla/sccache to v0.16.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/379
+- chore(deps): update dependency openobserve/openobserve to v0.91.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/380
+- chore(deps): update dependency zizmor to v1.26.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/381
+- chore(deps): update dependency jdx/mise to v2026.7.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/378
+- chore(deps): update all action update (major) by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/368
+- chore(deps): update dependency aqua:ast-grep/ast-grep to v0.44.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/382
+- chore(deps): update taiki-e/install-action action to v2.82.9 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/384
+- chore(deps): update dependency usage to v3.5.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/385
+- chore(deps): update taiki-e/install-action action to v2.82.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/386
+- chore(deps): update dependency jdx/mise to v2026.7.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/387
+- chore(deps): update dependency jdx/mise to v2026.7.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/388
+- chore(deps): update github/codeql-action action to v4.37.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/389
+- chore(deps): update taiki-e/install-action action to v2.82.11 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/391
+- chore(deps): update dependency jdx/mise to v2026.7.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/390
+- chore(deps): update actions/labeler action to v6.2.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/392
+- chore(deps): update dependency jdx/mise to v2026.7.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/393
+- chore(deps): update dependency aqua:embarkstudios/cargo-deny to v0.20.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/395
+- chore(deps): update taiki-e/install-action action to v2.83.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/396
+- chore(deps): update taiki-e/install-action action to v2.83.1 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/397
+- chore(deps): update dependency github:naa0yama/graft to v0.5.10 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/398
+- chore(deps): update dependency github:naa0yama/graft to v0.5.11 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/399
+- chore(deps): update taiki-e/install-action action to v2.83.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/400
+- chore(deps): update dependency zizmor to v1.27.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/401
+- chore(deps): update dependency jdx/mise to v2026.7.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/402
+- chore(deps): update dependency jdx/mise to v2026.7.6 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/403
+- chore(deps): update dependency usage to v3.5.5 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/404
+- chore(deps): update dependency dprint to v0.55.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/406
+- chore(deps): update zizmorcore/zizmor-action action to v0.6.0 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/407
+- chore(deps): update dependency jdx/mise to v2026.7.7 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/408
+- chore(deps): update dependency jdx/mise to v2026.7.7 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/409
+- chore(deps): update all action update by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/411
+- chore(deps): update dependency openobserve/openobserve to v0.91.2 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/413
+- chore(deps): update taiki-e/install-action action to v2.83.4 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/414
+
+### Other Changes
+
+- chore(deps): update rust crate anyhow to v1.0.103 [security] by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/371
+
+**Full Changelog**: https://github.com/naa0yama/chezmage/compare/v0.3.8...v0.3.9
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
 ### Development Environment 🔧
 
 - chore(deps): update dependency openobserve/openobserve to v0.90.3 by @renovate[bot] in https://github.com/naa0yama/chezmage/pull/328
