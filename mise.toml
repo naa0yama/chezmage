@@ -24,7 +24,7 @@ dprint = "0.55.2"
 ghalint = "1.5.6"
 gitleaks = "8.30.1"
 tmux = "3.6a"
-usage = "3.6.0"
+usage = "4.1.0"
 zizmor = "1.28.0"
 
 [task_config]
